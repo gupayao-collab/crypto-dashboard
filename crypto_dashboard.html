@@ -1,0 +1,758 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#00d4ff">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Crypto">
+  <link rel="manifest" href="manifest.json">
+  <title>Crypto Dashboard</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js"></script>
+  <style>
+    :root {
+      --bg:         #060d1f;
+      --surface:    #0b1628;
+      --surface2:   #0f1e35;
+      --border:     #1a2f4a;
+      --accent:     #00d4ff;
+      --accent-dim: rgba(0,212,255,.08);
+      --green:      #00ff9d;
+      --red:        #ff4d6d;
+      --yellow:     #ffd166;
+      --text:       #e2e8f0;
+      --muted:      #4a6080;
+      --card-glow:  rgba(0,212,255,.12);
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background-color: var(--bg);
+      background-image:
+        linear-gradient(rgba(0,212,255,.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0,212,255,.03) 1px, transparent 1px);
+      background-size: 44px 44px;
+      min-height: 100vh;
+      padding: 24px;
+      color: var(--text);
+    }
+
+    .container { max-width: 1400px; margin: 0 auto; }
+
+    /* ── Header ── */
+    .header {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-top: 2px solid var(--accent);
+      padding: 20px 28px;
+      border-radius: 14px;
+      margin-bottom: 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 14px;
+      box-shadow: 0 0 40px rgba(0,212,255,.06);
+    }
+
+    .header h1 {
+      font-size: 20px; font-weight: 700; color: var(--accent);
+      letter-spacing: 1px; text-transform: uppercase;
+      text-shadow: 0 0 20px rgba(0,212,255,.4);
+    }
+    .header p { font-size: 11px; color: var(--muted); margin-top: 3px; letter-spacing: .5px; }
+
+    .controls { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+
+    /* ── Tabs ── */
+    .tabs {
+      display: flex;
+      gap: 2px;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 3px;
+      margin-bottom: 20px;
+    }
+    .tab {
+      flex: 1;
+      padding: 10px 20px;
+      border: none;
+      border-radius: 6px;
+      background: transparent;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      cursor: pointer;
+      transition: all .2s;
+    }
+    .tab.active {
+      background: var(--accent);
+      color: var(--bg);
+      box-shadow: 0 0 16px rgba(0,212,255,.35);
+    }
+    .tab:not(.active):hover { color: var(--accent); }
+
+    /* ── Buttons ── */
+    button.btn-primary, button.btn-filter {
+      padding: 8px 16px;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: .5px;
+      text-transform: uppercase;
+      transition: all .2s;
+      background: transparent;
+      color: var(--muted);
+    }
+    button.btn-primary {
+      background: var(--accent); color: var(--bg);
+      border-color: var(--accent);
+      box-shadow: 0 0 14px rgba(0,212,255,.3);
+    }
+    button.btn-primary:hover { box-shadow: 0 0 26px rgba(0,212,255,.55); transform: translateY(-1px); }
+    button.btn-filter:hover  { border-color: var(--accent); color: var(--accent); }
+    button.btn-filter.active {
+      border-color: var(--accent); color: var(--accent);
+      background: var(--accent-dim);
+      box-shadow: 0 0 10px rgba(0,212,255,.2);
+    }
+
+    .timestamp {
+      font-size: 11px; color: var(--muted);
+      padding: 6px 12px;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      white-space: nowrap;
+    }
+
+    /* ── Alerts ── */
+    .alert-box {
+      padding: 12px 16px; border-radius: 8px;
+      margin-bottom: 16px; font-size: 12px;
+      display: none; border-left: 3px solid;
+    }
+    .alert-error   { background: rgba(255,77,109,.1);  color: #ff8fa3; border-color: var(--red); }
+    .alert-success { background: rgba(0,255,157,.08);  color: #6effc8; border-color: var(--green); }
+
+    /* ── Loading ── */
+    .loading { text-align: center; padding: 60px; color: var(--muted); }
+    .spinner {
+      width: 38px; height: 38px;
+      border: 2px solid var(--border);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin .8s linear infinite;
+      margin: 0 auto 14px;
+      box-shadow: 0 0 10px rgba(0,212,255,.3);
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── Market cards ── */
+    .cards-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(290px, 1fr));
+      gap: 14px; margin-bottom: 20px;
+    }
+
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px; padding: 20px;
+      transition: border-color .25s, box-shadow .25s, transform .2s;
+      position: relative; overflow: hidden;
+    }
+    .card::after {
+      content: ''; position: absolute;
+      top: 0; left: 0; right: 0; height: 1px;
+      background: linear-gradient(90deg, transparent, var(--accent), transparent);
+      opacity: 0; transition: opacity .3s;
+    }
+    .card:hover { border-color: rgba(0,212,255,.35); box-shadow: 0 0 28px var(--card-glow); transform: translateY(-3px); }
+    .card:hover::after { opacity: 1; }
+    .card-alert { border-color: rgba(255,77,109,.3); }
+    .card-alert:hover { border-color: rgba(255,77,109,.55); box-shadow: 0 0 28px rgba(255,77,109,.12); }
+    .card-alert::after { background: linear-gradient(90deg, transparent, var(--red), transparent); }
+
+    .card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; }
+    .coin-name { font-size: 18px; font-weight: 800; color: var(--accent); letter-spacing: 1px; text-shadow: 0 0 14px rgba(0,212,255,.35); }
+    .card-alert .coin-name { color: var(--red); text-shadow: 0 0 14px rgba(255,77,109,.35); }
+
+    .badge { padding: 3px 9px; border-radius: 4px; font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; }
+    .badge-stable { background: rgba(0,255,157,.1); color: var(--green); border: 1px solid rgba(0,255,157,.25); }
+    .badge-alert  { background: rgba(255,77,109,.1); color: var(--red); border: 1px solid rgba(255,77,109,.3); animation: pulse-alert 2s ease-in-out infinite; }
+    @keyframes pulse-alert {
+      0%,100% { box-shadow: none; }
+      50%      { box-shadow: 0 0 8px rgba(255,77,109,.3); }
+    }
+
+    .price-label { font-size: 9px; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 3px; }
+    .price-value { font-size: 24px; font-weight: 700; color: var(--text); font-family: 'Courier New', monospace; margin-bottom: 14px; }
+
+    .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 12px; }
+    .stat-box { background: var(--surface2); border: 1px solid var(--border); padding: 9px 11px; border-radius: 7px; }
+    .stat-label { font-size: 9px; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 4px; }
+    .stat-value { font-size: 13px; font-weight: 700; font-family: 'Courier New', monospace; }
+
+    .positive { color: var(--green); text-shadow: 0 0 8px rgba(0,255,157,.25); }
+    .negative { color: var(--red);   text-shadow: 0 0 8px rgba(255,77,109,.25); }
+
+    .mini-chart { position: relative; height: 65px; margin-top: 4px; }
+
+    /* ── Charts section ── */
+    .charts-section { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 22px; margin-bottom: 20px; }
+    .section-title { font-size: 11px; color: var(--accent); margin-bottom: 18px; font-weight: 700; text-transform: uppercase; letter-spacing: 2px; }
+    .charts-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 14px; }
+    .chart-wrap { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; padding: 14px; position: relative; height: 260px; }
+
+    /* ── Portfolio ── */
+    .portfolio-summary {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 14px;
+      margin-bottom: 20px;
+    }
+
+    .summary-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 20px;
+    }
+    .summary-card.accent-card { border-color: rgba(0,212,255,.3); box-shadow: 0 0 20px rgba(0,212,255,.08); }
+    .summary-card.green-card  { border-color: rgba(0,255,157,.25); box-shadow: 0 0 20px rgba(0,255,157,.06); }
+    .summary-card.red-card    { border-color: rgba(255,77,109,.25); box-shadow: 0 0 20px rgba(255,77,109,.06); }
+
+    .summary-label { font-size: 9px; color: var(--muted); text-transform: uppercase; letter-spacing: 1.5px; margin-bottom: 8px; }
+    .summary-value { font-size: 28px; font-weight: 800; font-family: 'Courier New', monospace; }
+    .summary-sub   { font-size: 12px; color: var(--muted); margin-top: 4px; }
+
+    .portfolio-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(290px, 1fr));
+      gap: 14px;
+      margin-bottom: 20px;
+    }
+
+    .p-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 20px;
+      transition: border-color .2s, box-shadow .2s, transform .2s;
+    }
+    .p-card:hover { border-color: rgba(0,212,255,.3); box-shadow: 0 0 24px var(--card-glow); transform: translateY(-2px); }
+    .p-card.pl-positive { border-color: rgba(0,255,157,.2); }
+    .p-card.pl-negative { border-color: rgba(255,77,109,.2); }
+
+    .p-card-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 14px; }
+    .p-coin { font-size: 18px; font-weight: 800; color: var(--accent); letter-spacing: 1px; }
+    .p-valor { font-size: 18px; font-weight: 700; color: var(--text); font-family: 'Courier New', monospace; }
+
+    .p-rows { display: flex; flex-direction: column; gap: 7px; }
+    .p-row  { display: flex; justify-content: space-between; align-items: center; }
+    .p-key  { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: .8px; }
+    .p-val  { font-size: 12px; font-weight: 700; font-family: 'Courier New', monospace; color: var(--text); }
+
+    .pl-badge {
+      display: inline-block;
+      padding: 3px 10px;
+      border-radius: 4px;
+      font-size: 12px;
+      font-weight: 700;
+      font-family: 'Courier New', monospace;
+    }
+    .pl-badge.pos { background: rgba(0,255,157,.12); color: var(--green); border: 1px solid rgba(0,255,157,.3); }
+    .pl-badge.neg { background: rgba(255,77,109,.1); color: var(--red);   border: 1px solid rgba(255,77,109,.3); }
+
+    .pie-wrap { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; padding: 14px; height: 320px; }
+
+    /* ── No data ── */
+    .no-data { text-align: center; padding: 80px 20px; color: var(--muted); display: none; }
+    .no-data h3 { font-size: 16px; color: var(--accent); margin-bottom: 10px; }
+    .no-data p  { font-size: 12px; margin-top: 8px; }
+    .no-data code { background: var(--surface2); border: 1px solid var(--border); color: var(--accent); padding: 3px 9px; border-radius: 4px; font-size: 11px; }
+
+    @media (max-width: 640px) {
+      body { padding: 12px; }
+      .header { flex-direction: column; align-items: flex-start; }
+      .price-value, .p-valor, .summary-value { font-size: 18px; }
+    }
+  </style>
+</head>
+<body>
+<div class="container">
+
+  <!-- Header -->
+  <div class="header">
+    <div>
+      <h1>// Crypto Dashboard</h1>
+      <p>BINANCE API &nbsp;·&nbsp; MONITOR EM TEMPO REAL &nbsp;·&nbsp; próxima atualização em <span id="countdown">60</span>s</p>
+    </div>
+    <div class="controls">
+      <button class="btn-primary" onclick="atualizar()">&#8635; ATUALIZAR</button>
+      <div class="timestamp" id="timestamp">—</div>
+    </div>
+  </div>
+
+  <!-- Tabs -->
+  <div class="tabs">
+    <button class="tab active" onclick="mudarAba('mercado', this)">MERCADO</button>
+    <button class="tab"        onclick="mudarAba('portfolio', this)">PORTFOLIO</button>
+  </div>
+
+  <!-- Alerts -->
+  <div id="alert-error"   class="alert-box alert-error"></div>
+  <div id="alert-success" class="alert-box alert-success"></div>
+
+  <!-- Loading -->
+  <div id="loading" class="loading">
+    <div class="spinner"></div>
+    <p>Carregando dados...</p>
+  </div>
+
+  <!-- ── ABA MERCADO ── -->
+  <div id="aba-mercado" style="display:none">
+    <div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap">
+      <button class="btn-filter active" onclick="filtrar('todos', this)">TODOS</button>
+      <button class="btn-filter" onclick="filtrar('alertas', this)">ALERTAS</button>
+      <button class="btn-filter" onclick="filtrar('estavel', this)">ESTAVEIS</button>
+    </div>
+    <div id="cards" class="cards-grid"></div>
+    <div class="charts-section">
+      <div class="section-title">// Analise Comparativa</div>
+      <div class="charts-grid">
+        <div class="chart-wrap"><canvas id="chart-precos"></canvas></div>
+        <div class="chart-wrap"><canvas id="chart-variacoes"></canvas></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── ABA PORTFOLIO ── -->
+  <div id="aba-portfolio" style="display:none">
+    <div id="portfolio-content" style="display:none">
+      <div id="portfolio-summary" class="portfolio-summary"></div>
+      <div class="charts-section" style="margin-bottom:20px">
+        <div class="section-title">// Alocacao do Portfolio</div>
+        <div class="charts-grid" style="grid-template-columns:1fr 1fr">
+          <div class="pie-wrap"><canvas id="chart-alocacao"></canvas></div>
+          <div class="pie-wrap"><canvas id="chart-pl"></canvas></div>
+        </div>
+      </div>
+      <div class="section-title" style="margin-bottom:14px">// Ativos</div>
+      <div id="portfolio-cards" class="portfolio-grid"></div>
+    </div>
+    <div id="portfolio-nodata" class="no-data">
+      <h3>SEM DADOS DE PORTFOLIO</h3>
+      <p>Execute o coletor de portfolio:</p>
+      <p style="margin-top:10px"><code>python portfolio_collector.py</code></p>
+      <p style="margin-top:8px">Ou use <code>iniciar_dashboard.bat</code></p>
+    </div>
+  </div>
+
+  <!-- No data mercado -->
+  <div id="no-data" class="no-data">
+    <h3>SEM DADOS</h3>
+    <p>Execute o coletor e clique em Atualizar:</p>
+    <p style="margin-top:10px"><code>python dashboard_collector.py</code></p>
+    <p style="margin-top:8px">Ou use <code>iniciar_dashboard.bat</code></p>
+  </div>
+
+</div>
+<script>
+  // ── Detecao de ambiente ────────────────────────────────────────────
+  // Local (PC): API_BASE vazio -> usa arquivos da mesma pasta (dados.json, portfolio.json)
+  // Remoto (iPhone via GitHub Pages): aponta para o backend no Render.
+  // TROCAR a URL abaixo pela do seu Render Web Service apos o deploy.
+  var BACKEND_URL = 'https://crypto-dash-gustavo.onrender.com';
+  var IS_LOCAL    = location.hostname === 'localhost' || location.hostname === '127.0.0.1' || location.protocol === 'file:';
+  var API_BASE    = IS_LOCAL ? '' : BACKEND_URL;
+
+  var dadosMercado   = null;
+  var dadosPortfolio = null;
+  var taxaBRL        = null;
+  var filtroAtual    = 'todos';
+  var abaAtual       = 'mercado';
+  var charts         = {};
+
+  var COR_ACCENT = '#00d4ff';
+  var COR_GREEN  = '#00ff9d';
+  var COR_RED    = '#ff4d6d';
+  var COR_YELLOW = '#ffd166';
+  var COR_MUTED  = '#4a6080';
+  var COR_GRID   = '#1a2f4a';
+  var COR_TICK   = '#4a6080';
+
+  // ── Tabs ───────────────────────────────────────────────────────────
+  function mudarAba(aba, btn) {
+    abaAtual = aba;
+    document.querySelectorAll('.tab').forEach(function(b) { b.classList.remove('active'); });
+    btn.classList.add('active');
+    esconder('aba-mercado'); esconder('aba-portfolio'); esconder('no-data');
+    atualizar();
+  }
+
+  // ── Atualizar ──────────────────────────────────────────────────────
+  function atualizar() {
+    _resetCountdown();
+    if (abaAtual === 'mercado')   carregarMercado();
+    else                          carregarPortfolio();
+  }
+
+  // ── Mercado ────────────────────────────────────────────────────────
+  async function carregarMercado() {
+    mostrarLoading(true);
+    esconder('alert-error'); esconder('alert-success');
+    try {
+      var resp = await fetch(API_BASE + '/dados.json?t=' + Date.now(), { cache: 'no-store' });
+      if (!resp.ok) throw new Error('HTTP ' + resp.status + ' — dados.json nao encontrado');
+      dadosMercado = await resp.json();
+      if (!dadosMercado || !dadosMercado.coins) throw new Error('Formato invalido');
+      mostrarLoading(false);
+      mostrar('aba-mercado'); esconder('no-data');
+      renderizarCards();
+      renderizarGraficosMercado();
+      atualizarTimestamp(dadosMercado.ultima_atualizacao);
+      mostrarAlerta('success', 'MERCADO ATUALIZADO');
+    } catch(err) {
+      mostrarLoading(false); mostrar('no-data');
+      mostrarAlerta('error', 'ERRO: ' + err.message);
+    }
+  }
+
+  function renderizarCards() {
+    var container = document.getElementById('cards');
+    container.innerHTML = '';
+    Object.keys(charts).filter(function(k){return k.startsWith('mini-');}).forEach(function(k){
+      charts[k].destroy(); delete charts[k];
+    });
+
+    var entries = Object.entries(dadosMercado.coins).filter(function(pair) {
+      var d = pair[1];
+      if (d.preco_atual <= 0 || d.historico_24h.length === 0) return false;
+      if (filtroAtual === 'alertas') return Math.abs(d.desvio_percent) >= 3.0;
+      if (filtroAtual === 'estavel') return Math.abs(d.desvio_percent) < 3.0;
+      return true;
+    });
+
+    if (entries.length === 0) {
+      container.innerHTML = '<p style="grid-column:1/-1;text-align:center;color:var(--muted);padding:40px;letter-spacing:2px">NENHUMA CRIPTOMOEDA NESTE FILTRO</p>';
+      return;
+    }
+
+    entries.forEach(function(pair) {
+      var coin = pair[0], d = pair[1];
+      var emAlerta = Math.abs(d.desvio_percent) >= 3.0;
+      var alta = d.desvio_percent > 0;
+      var cor = alta ? COR_GREEN : COR_RED;
+      var sinal = alta ? '+' + d.desvio_percent.toFixed(2) + '%' : d.desvio_percent.toFixed(2) + '%';
+
+      var card = document.createElement('div');
+      card.className = 'card' + (emAlerta ? ' card-alert' : '');
+      card.innerHTML =
+        '<div class="card-header">' +
+          '<span class="coin-name">' + coin + '</span>' +
+          '<span class="badge ' + (emAlerta ? 'badge-alert' : 'badge-stable') + '">' + (emAlerta ? 'ALERTA' : 'ESTAVEL') + '</span>' +
+        '</div>' +
+        '<div class="price-label">PRECO ATUAL</div>' +
+        '<div class="price-value">$' + fmt(d.preco_atual) + '</div>' +
+        '<div class="stats-grid">' +
+          '<div class="stat-box"><div class="stat-label">DESVIO 24H</div>' +
+            '<div class="stat-value ' + (alta?'positive':'negative') + '">' + (alta?'&#9650;':'&#9660;') + ' ' + sinal + '</div></div>' +
+          '<div class="stat-box"><div class="stat-label">MEDIA 24H</div>' +
+            '<div class="stat-value" style="color:var(--muted)">$' + fmt(d.media_24h) + '</div></div>' +
+        '</div>' +
+        '<div class="mini-chart"><canvas id="mini-' + coin + '"></canvas></div>';
+      container.appendChild(card);
+
+      requestAnimationFrame(function() {
+        var ctx = document.getElementById('mini-' + coin);
+        if (!ctx || !d.historico_24h.length) return;
+        charts['mini-' + coin] = new Chart(ctx, {
+          type: 'line',
+          data: { labels: d.historico_24h.map(function(_,i){return i;}),
+            datasets: [{ data: d.historico_24h, borderColor: cor, backgroundColor: cor+'18',
+              borderWidth: 1.5, fill: true, tension: 0.4, pointRadius: 0 }] },
+          options: { responsive:true, maintainAspectRatio:false, animation:false,
+            plugins:{legend:{display:false}}, scales:{x:{display:false},y:{display:false}} }
+        });
+      });
+    });
+  }
+
+  function renderizarGraficosMercado() {
+    ['chart-precos','chart-variacoes'].forEach(function(id){ if(charts[id]){charts[id].destroy();delete charts[id];} });
+    var entries = Object.entries(dadosMercado.coins).filter(function(p){return p[1].preco_atual>0&&p[1].historico_24h.length>0;});
+    var labels  = entries.map(function(p){return p[0];});
+    var precos  = entries.map(function(p){return p[1].preco_atual;});
+    var desvios = entries.map(function(p){return p[1].desvio_percent;});
+    var coresDev = desvios.map(function(v){return v>=0?COR_GREEN:COR_RED;});
+
+    charts['chart-precos'] = new Chart(document.getElementById('chart-precos'), {
+      type:'bar', data:{ labels:labels, datasets:[{ data:precos, backgroundColor:COR_ACCENT+'bb',
+        borderColor:COR_ACCENT, borderWidth:1, borderRadius:4, borderSkipped:false }] },
+      options:{ responsive:true, maintainAspectRatio:false,
+        plugins:{ legend:{display:false}, title:{display:true,text:'PRECOS (USDT)',color:COR_MUTED,font:{size:10,weight:'700'},padding:{bottom:10}} },
+        scales:{ x:{ticks:{color:COR_TICK,font:{size:10}},grid:{color:COR_GRID}},
+          y:{beginAtZero:true,grid:{color:COR_GRID},ticks:{color:COR_TICK,callback:function(v){return '$'+v.toLocaleString('pt-BR');}}} } }
+    });
+
+    charts['chart-variacoes'] = new Chart(document.getElementById('chart-variacoes'), {
+      type:'bar', data:{ labels:labels, datasets:[{ data:desvios,
+        backgroundColor:coresDev.map(function(c){return c+'bb';}), borderColor:coresDev,
+        borderWidth:1, borderRadius:4, borderSkipped:false }] },
+      options:{ responsive:true, maintainAspectRatio:false,
+        plugins:{ legend:{display:false}, title:{display:true,text:'DESVIO VS. MEDIA 24H (%)  |  VERDE = ALTA  |  VERMELHO = BAIXA',color:COR_MUTED,font:{size:10,weight:'700'},padding:{bottom:10}} },
+        scales:{ x:{ticks:{color:COR_TICK,font:{size:10}},grid:{color:COR_GRID}},
+          y:{ grid:{color:function(c){return c.tick.value===0?'#334':COR_GRID;},lineWidth:function(c){return c.tick.value===0?2:1;}},
+            ticks:{color:COR_TICK,callback:function(v){return v.toFixed(1)+'%';}} } } }
+    });
+  }
+
+  function filtrar(tipo, btn) {
+    filtroAtual = tipo;
+    document.querySelectorAll('.btn-filter').forEach(function(b){b.classList.remove('active');});
+    btn.classList.add('active');
+    if (dadosMercado) renderizarCards();
+  }
+
+  // ── Portfolio ──────────────────────────────────────────────────────
+  async function carregarPortfolio() {
+    mostrarLoading(true);
+    esconder('alert-error'); esconder('alert-success');
+    try {
+      var resp = await fetch(API_BASE + '/portfolio.json?t=' + Date.now(), { cache: 'no-store' });
+      if (!resp.ok) throw new Error('HTTP ' + resp.status + ' — portfolio.json nao encontrado');
+      dadosPortfolio = await resp.json();
+      if (!dadosPortfolio || !dadosPortfolio.coins) throw new Error('Formato invalido');
+      try {
+        var rBRL = await fetch('https://economia.awesomeapi.com.br/json/last/USD-BRL', { cache: 'no-store' });
+        var dBRL = await rBRL.json();
+        taxaBRL = parseFloat(dBRL.USDBRL.bid);
+      } catch(_) { taxaBRL = null; }
+      mostrarLoading(false);
+      mostrar('aba-portfolio');
+      mostrar('portfolio-content'); esconder('portfolio-nodata');
+      renderizarResumoPortfolio();
+      await renderizarGraficosPortfolio();
+      renderizarCardsPortfolio();
+      atualizarTimestamp(dadosPortfolio.ultima_atualizacao);
+      mostrarAlerta('success', 'PORTFOLIO ATUALIZADO');
+    } catch(err) {
+      mostrarLoading(false);
+      mostrar('aba-portfolio');
+      esconder('portfolio-content'); mostrar('portfolio-nodata');
+      mostrarAlerta('error', 'ERRO: ' + err.message);
+    }
+  }
+
+  function renderizarResumoPortfolio() {
+    var p = dadosPortfolio;
+    var depositoBRL = p.deposito_inicial_brl || 3000;
+
+    var plPos, plValor, plPct, valorEmReaisCard = '';
+    if (taxaBRL) {
+      var valorBRL = p.total_valor_usd * taxaBRL;
+      var plBRL    = valorBRL - depositoBRL;
+      plPos  = plBRL >= 0;
+      plPct  = (plBRL / depositoBRL * 100).toFixed(2);
+      plValor = (plPos?'+':'') + 'R$ ' + Math.abs(plBRL).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});
+      valorEmReaisCard =
+        '<div class="summary-card" style="border-color:#ffd166">' +
+          '<div class="summary-label">VALOR EM REAIS</div>' +
+          '<div class="summary-value" style="color:#ffd166">R$ ' + valorBRL.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2}) + '</div>' +
+          '<div class="summary-sub">USD 1 = R$ ' + taxaBRL.toFixed(2) + '</div>' +
+        '</div>';
+    } else {
+      plPos   = p.pl_total_pct >= 0;
+      plPct   = (plPos?'+':'') + p.pl_total_pct.toFixed(2);
+      plValor = (plPos?'+':'') + '$' + Math.abs(p.pl_total_usd).toFixed(2);
+    }
+
+    document.getElementById('portfolio-summary').innerHTML =
+      '<div class="summary-card accent-card">' +
+        '<div class="summary-label">VALOR TOTAL</div>' +
+        '<div class="summary-value" style="color:var(--accent)">$' + p.total_valor_usd.toFixed(2) + '</div>' +
+        '<div class="summary-sub">USDT livre: $' + p.usdt_livre.toFixed(2) + '</div>' +
+      '</div>' +
+      '<div class="summary-card">' +
+        '<div class="summary-label">TOTAL INVESTIDO</div>' +
+        '<div class="summary-value" style="color:#ffd166">R$ ' + depositoBRL.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2}) + '</div>' +
+        '<div class="summary-sub">deposito inicial</div>' +
+      '</div>' +
+      '<div class="summary-card ' + (plPos?'green-card':'red-card') + '">' +
+        '<div class="summary-label">LUCRO / PREJUIZO</div>' +
+        '<div class="summary-value ' + (plPos?'positive':'negative') + '">' + plValor + '</div>' +
+        '<div class="summary-sub ' + (plPos?'positive':'negative') + '">' + (plPos?'+':'') + plPct + '%</div>' +
+      '</div>' +
+      valorEmReaisCard;
+  }
+
+  async function renderizarGraficosPortfolio() {
+    ['chart-alocacao','chart-pl'].forEach(function(id){ if(charts[id]){charts[id].destroy();delete charts[id];} });
+
+    // Coins ordenadas decrescente por valor (alocacao)
+    var coins = Object.entries(dadosPortfolio.coins)
+      .filter(function(p){return p[1].valor_atual>0;})
+      .sort(function(a,b){return b[1].valor_atual - a[1].valor_atual;});
+    var labels  = coins.map(function(p){return p[0];});
+    var valores = coins.map(function(p){return p[1].valor_atual;});
+    var coresPie = ['#00d4ff','#00ff9d','#ffd166','#ff4d6d','#a78bfa','#38bdf8','#f472b6','#4ade80','#fb923c'];
+
+    // Grafico de alocacao (pizza) — ordenado decrescente
+    var totalValor = valores.reduce(function(a,b){return a+b;}, 0);
+    charts['chart-alocacao'] = new Chart(document.getElementById('chart-alocacao'), {
+      type: 'doughnut',
+      plugins: [ChartDataLabels],
+      data: { labels: labels, datasets: [{ data: valores, backgroundColor: coresPie.slice(0, labels.length),
+        borderColor: '#0b1628', borderWidth: 2 }] },
+      options: { responsive:true, maintainAspectRatio:false,
+        layout: { padding: 36 },
+        plugins: {
+          legend: { display: false },
+          title:{display:false},
+          datalabels: {
+            anchor: 'end',
+            align: 'end',
+            offset: 6,
+            color: function(ctx) { return coresPie[ctx.dataIndex] || '#fff'; },
+            font: { size: 10, weight: 'bold' },
+            formatter: function(value, ctx) {
+              var pct = (value / totalValor * 100);
+              if (pct < 2) return '';
+              return ctx.chart.data.labels[ctx.dataIndex] + '\n' + pct.toFixed(1) + '%';
+            }
+          }
+        },
+        cutout: '55%'
+      }
+    });
+
+    // Grafico: valorizacao 30 dias — busca klines da Binance
+    var valorizacao = [];
+    for (var i = 0; i < coins.length; i++) {
+      var coin = coins[i][0];
+      try {
+        var r = await fetch('https://api.binance.com/api/v3/klines?symbol=' + coin + 'USDT&interval=1d&limit=31', { cache: 'no-store' });
+        var klines = await r.json();
+        if (Array.isArray(klines) && klines.length >= 2) {
+          var p0  = parseFloat(klines[0][4]);
+          var p1  = parseFloat(klines[klines.length-1][4]);
+          var pct = (p1 - p0) / p0 * 100;
+          valorizacao.push({coin: coin, pct: pct});
+        }
+      } catch(_) {}
+    }
+    valorizacao.sort(function(a,b){return b.pct - a.pct;});
+    var labV = valorizacao.map(function(v){return v.coin;});
+    var pctV = valorizacao.map(function(v){return v.pct;});
+
+    charts['chart-pl'] = new Chart(document.getElementById('chart-pl'), {
+      type: 'bar',
+      data: { labels: labV, datasets: [{ data: pctV,
+        backgroundColor: pctV.map(function(v){return v>=0?COR_GREEN+'bb':COR_RED+'bb';}),
+        borderColor: pctV.map(function(v){return v>=0?COR_GREEN:COR_RED;}),
+        borderWidth: 1, borderRadius: 4, borderSkipped: false }] },
+      options: { responsive:true, maintainAspectRatio:false,
+        plugins:{ legend:{display:false}, title:{display:true,text:'VALORIZACAO 30 DIAS (%)',color:COR_MUTED,font:{size:10,weight:'700'},padding:{bottom:8}} },
+        scales:{
+          x:{ticks:{color:COR_TICK,font:{size:11}},grid:{color:COR_GRID}},
+          y:{ grid:{color:function(c){return c.tick.value===0?'#334':COR_GRID;},lineWidth:function(c){return c.tick.value===0?2:1;}},
+            ticks:{color:COR_TICK,callback:function(v){return v.toFixed(1)+'%';}} } }
+      }
+    });
+  }
+
+  function renderizarCardsPortfolio() {
+    var container = document.getElementById('portfolio-cards');
+    container.innerHTML = '';
+
+    var coins = Object.entries(dadosPortfolio.coins)
+      .filter(function(p){return p[1].valor_atual > 0;})
+      .sort(function(a,b){return b[1].valor_atual - a[1].valor_atual;});
+
+    coins.forEach(function(pair) {
+      var coin = pair[0], d = pair[1];
+      var plPos = d.pl_pct >= 0;
+      var sinalPct = (plPos?'+':'') + d.pl_pct.toFixed(2) + '%';
+      var sinalUsd = (plPos?'+$':'-$') + Math.abs(d.pl_usd).toFixed(2);
+
+      var card = document.createElement('div');
+      card.className = 'p-card ' + (plPos ? 'pl-positive' : 'pl-negative');
+      card.innerHTML =
+        '<div class="p-card-header">' +
+          '<span class="p-coin">' + coin + '</span>' +
+          '<span class="p-valor">$' + d.valor_atual.toFixed(2) + '</span>' +
+        '</div>' +
+        '<div class="p-rows">' +
+          '<div class="p-row"><span class="p-key">Quantidade</span><span class="p-val">' + fmtQtd(d.quantidade, d.preco_atual) + '</span></div>' +
+          '<div class="p-row"><span class="p-key">Preco Atual</span><span class="p-val">$' + fmt(d.preco_atual) + '</span></div>' +
+          '<div class="p-row"><span class="p-key">Preco Medio</span><span class="p-val" style="color:var(--muted)">$' + fmt(d.preco_medio) + '</span></div>' +
+          '<div class="p-row"><span class="p-key">Custo Base</span><span class="p-val" style="color:var(--muted)">$' + d.custo_base.toFixed(2) + '</span></div>' +
+          '<div class="p-row"><span class="p-key">P&L</span>' +
+            '<span class="pl-badge ' + (plPos?'pos':'neg') + '">' + sinalPct + ' (' + sinalUsd + ')</span>' +
+          '</div>' +
+        '</div>';
+      container.appendChild(card);
+    });
+  }
+
+  // ── Helpers ────────────────────────────────────────────────────────
+  function atualizarTimestamp(iso) {
+    var el = document.getElementById('timestamp');
+    if (iso) el.textContent = new Date(iso).toLocaleString('pt-BR');
+  }
+
+  function fmt(n) {
+    var c = n >= 1 ? 2 : n >= 0.01 ? 4 : n >= 0.0001 ? 6 : 8;
+    return n.toLocaleString('pt-BR', { minimumFractionDigits:c, maximumFractionDigits:c });
+  }
+
+  function fmtQtd(qtd, preco) {
+    var c = preco >= 1 ? 4 : preco >= 0.01 ? 2 : 0;
+    return qtd.toLocaleString('pt-BR', { minimumFractionDigits:c, maximumFractionDigits:c });
+  }
+
+  function mostrar(id)  { var el=document.getElementById(id); if(el) el.style.display=''; }
+  function esconder(id) { var el=document.getElementById(id); if(el) el.style.display='none'; }
+  function mostrarLoading(on) { document.getElementById('loading').style.display=on?'block':'none'; }
+  function mostrarAlerta(tipo, msg) {
+    var el = document.getElementById('alert-'+tipo);
+    el.innerHTML = msg; el.style.display = 'block';
+    if (tipo==='success') setTimeout(function(){esconder('alert-'+tipo);}, 3000);
+  }
+
+  var _countdownSec = 60;
+  function _resetCountdown() {
+    _countdownSec = 60;
+    var el = document.getElementById('countdown');
+    if (el) el.textContent = _countdownSec;
+  }
+  setInterval(function() {
+    if (document.hidden) return;
+    _countdownSec--;
+    var el = document.getElementById('countdown');
+    if (el) el.textContent = Math.max(0, _countdownSec);
+    if (_countdownSec <= 0) { _resetCountdown(); atualizar(); }
+  }, 1000);
+  window.addEventListener('load', function() { atualizar(); _resetCountdown(); });
+
+  // Heartbeat — so faz sentido localmente (servidor.py encerra coletores quando ping para).
+  // No iPhone/Render, ignorado.
+  if (IS_LOCAL) {
+    setInterval(function(){
+      fetch('/ping', { cache: 'no-store' }).catch(function(){});
+    }, 2000);
+  }
+</script>
+</body>
+</html>
