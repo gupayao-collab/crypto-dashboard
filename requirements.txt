@@ -1,0 +1,6 @@
+Flask==3.0.3
+flask-cors==5.0.0
+requests==2.32.3
+gunicorn==23.0.0
+cryptography==43.0.3
+python-dotenv==1.0.1
