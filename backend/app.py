@@ -86,6 +86,11 @@ def health():
     return jsonify({"status": "ok"})
 
 
+@app.route("/ping")
+def ping():
+    return "ok", 200
+
+
 # ──────────────────────────────────────────────────────────────────────────
 # Rotas para servir o HTML em DEV LOCAL (em producao, GitHub Pages faz isso).
 # Permite abrir http://localhost:5000/ e ver o dashboard completo.

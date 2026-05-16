@@ -527,6 +527,8 @@
 
   // ── Portfolio ──────────────────────────────────────────────────────
   async function carregarPortfolio() {
+    if (_carregandoPortfolio) return;
+    _carregandoPortfolio = true;
     mostrarLoading(true);
     esconder('alert-error'); esconder('alert-success');
     try {
@@ -552,6 +554,8 @@
       mostrar('aba-portfolio');
       esconder('portfolio-content'); mostrar('portfolio-nodata');
       mostrarAlerta('error', 'ERRO: ' + err.message);
+    } finally {
+      _carregandoPortfolio = false;
     }
   }
 
@@ -732,6 +736,7 @@
   }
 
   var _countdownSec = 60;
+  var _carregandoPortfolio = false;
   function _resetCountdown() {
     _countdownSec = 60;
     var el = document.getElementById('countdown');
