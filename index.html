@@ -364,6 +364,16 @@
 
 </div>
 <script>
+  // ── Deteccao de ambiente ───────────────────────────────────────────
+  // Local (PC, mesma WiFi): servidor.py serve dados.json/portfolio.json + /coletar.
+  // Remoto (iPhone via GitHub Pages): backend Flask no Fly.io fornece dados ao vivo.
+  var BACKEND_URL = 'https://crypto-dash-gustavo.fly.dev';
+  var IS_LOCAL    = location.hostname === 'localhost'
+                 || location.hostname === '127.0.0.1'
+                 || location.hostname.startsWith('192.168.')
+                 || location.protocol === 'file:';
+  var API_BASE    = IS_LOCAL ? '' : BACKEND_URL;
+
   var dadosMercado   = null;
   var dadosPortfolio = null;
   var taxaBRL        = null;
@@ -397,7 +407,10 @@
   // forcarColeta = true  -> dispara o coletor no servidor (clique manual)
   // forcarColeta = false -> só relê o JSON ja salvo (auto-refresh de 60s)
   async function atualizar(forcarColeta) {
-    if (forcarColeta) {
+    // /coletar so existe no servidor local (servidor.py).
+    // No iPhone (GitHub Pages -> Fly.io), o backend ja cacheia por 30s e
+    // qualquer nova chamada a dados.json/portfolio.json busca da Binance.
+    if (forcarColeta && IS_LOCAL) {
       var btn = document.getElementById('btn-atualizar');
       var textoOriginal = btn ? btn.innerHTML : null;
       if (btn) { btn.disabled = true; btn.innerHTML = '&#8635; COLETANDO...'; }
@@ -420,7 +433,7 @@
     mostrarLoading(true);
     esconder('alert-error'); esconder('alert-success');
     try {
-      var resp = await fetch('dados.json?t=' + Date.now(), { cache: 'no-store' });
+      var resp = await fetch(API_BASE + '/dados.json?t=' + Date.now(), { cache: 'no-store' });
       if (!resp.ok) throw new Error('HTTP ' + resp.status + ' — dados.json nao encontrado');
       dadosMercado = await resp.json();
       if (!dadosMercado || !dadosMercado.coins) throw new Error('Formato invalido');
@@ -541,7 +554,7 @@
     mostrarLoading(true);
     esconder('alert-error'); esconder('alert-success');
     try {
-      var resp = await fetch('portfolio.json?t=' + Date.now(), { cache: 'no-store' });
+      var resp = await fetch(API_BASE + '/portfolio.json?t=' + Date.now(), { cache: 'no-store' });
       if (!resp.ok) throw new Error('HTTP ' + resp.status + ' — portfolio.json nao encontrado');
       dadosPortfolio = await resp.json();
       if (!dadosPortfolio || !dadosPortfolio.coins) throw new Error('Formato invalido');
@@ -760,9 +773,12 @@
 
   // Heartbeat — informa o servidor que o browser ainda esta aberto.
   // Quando a aba fechar, os pings param e o servidor encerra os coletores.
-  setInterval(function(){
-    fetch('/ping', { cache: 'no-store' }).catch(function(){});
-  }, 2000);
+  // Heartbeat so faz sentido localmente (servidor.py monitora; encerra coletores quando aba fecha).
+  if (IS_LOCAL) {
+    setInterval(function(){
+      fetch('/ping', { cache: 'no-store' }).catch(function(){});
+    }, 2000);
+  }
 </script>
 </body>
 </html>
