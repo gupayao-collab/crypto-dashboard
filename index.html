@@ -294,7 +294,7 @@
       <p>BINANCE API &nbsp;·&nbsp; MONITOR EM TEMPO REAL &nbsp;·&nbsp; AUTO-REFRESH 60s</p>
     </div>
     <div class="controls">
-      <button class="btn-primary" onclick="atualizar()">&#8635; ATUALIZAR</button>
+      <button class="btn-primary" id="btn-atualizar" onclick="atualizar(true)">&#8635; ATUALIZAR</button>
       <div class="timestamp" id="timestamp">—</div>
     </div>
   </div>
@@ -394,7 +394,23 @@
   }
 
   // ── Atualizar ──────────────────────────────────────────────────────
-  function atualizar() {
+  // forcarColeta = true  -> dispara o coletor no servidor (clique manual)
+  // forcarColeta = false -> só relê o JSON ja salvo (auto-refresh de 60s)
+  async function atualizar(forcarColeta) {
+    if (forcarColeta) {
+      var btn = document.getElementById('btn-atualizar');
+      var textoOriginal = btn ? btn.innerHTML : null;
+      if (btn) { btn.disabled = true; btn.innerHTML = '&#8635; COLETANDO...'; }
+      try {
+        var tipo = abaAtual === 'mercado' ? 'mercado' : 'portfolio';
+        var resp = await fetch('/coletar?tipo=' + tipo, { cache: 'no-store' });
+        if (!resp.ok) throw new Error('HTTP ' + resp.status);
+      } catch(err) {
+        mostrarAlerta('error', 'ERRO ao coletar: ' + err.message);
+      } finally {
+        if (btn) { btn.disabled = false; btn.innerHTML = textoOriginal; }
+      }
+    }
     if (abaAtual === 'mercado')   carregarMercado();
     else                          carregarPortfolio();
   }
