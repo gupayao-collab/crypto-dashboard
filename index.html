@@ -2,12 +2,7 @@
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-  <meta name="theme-color" content="#00d4ff">
-  <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="apple-mobile-web-app-title" content="Crypto">
-  <link rel="manifest" href="manifest.json">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Crypto Dashboard</title>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js"></script>
@@ -157,36 +152,6 @@
     }
     @keyframes spin { to { transform: rotate(360deg); } }
 
-    /* ── Skeleton cards (loading state) ── */
-    .skeleton-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(290px, 1fr));
-      gap: 14px;
-    }
-    .skeleton-card {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: 12px;
-      padding: 20px;
-      min-height: 168px;
-      position: relative;
-      overflow: hidden;
-    }
-    .skeleton-card::after {
-      content: '';
-      position: absolute;
-      inset: 0;
-      background: linear-gradient(90deg,
-        transparent 0%,
-        rgba(0,212,255,0.07) 50%,
-        transparent 100%);
-      animation: shimmer 1.4s linear infinite;
-    }
-    @keyframes shimmer {
-      from { transform: translateX(-100%); }
-      to   { transform: translateX(100%);  }
-    }
-
     /* ── Market cards ── */
     .cards-grid {
       display: grid;
@@ -316,7 +281,6 @@
       body { padding: 12px; }
       .header { flex-direction: column; align-items: flex-start; }
       .price-value, .p-valor, .summary-value { font-size: 18px; }
-      #aba-portfolio .charts-grid { grid-template-columns: 1fr !important; }
     }
   </style>
 </head>
@@ -327,7 +291,7 @@
   <div class="header">
     <div>
       <h1>// Crypto Dashboard</h1>
-      <p>BINANCE API &nbsp;·&nbsp; MONITOR EM TEMPO REAL &nbsp;·&nbsp; próxima atualização em <span id="countdown">60</span>s</p>
+      <p>BINANCE API &nbsp;·&nbsp; MONITOR EM TEMPO REAL &nbsp;·&nbsp; AUTO-REFRESH 60s</p>
     </div>
     <div class="controls">
       <button class="btn-primary" onclick="atualizar()">&#8635; ATUALIZAR</button>
@@ -345,14 +309,10 @@
   <div id="alert-error"   class="alert-box alert-error"></div>
   <div id="alert-success" class="alert-box alert-success"></div>
 
-  <!-- Loading (skeleton cards — evita salto de layout quando os dados chegam) -->
-  <div id="loading" class="skeleton-grid">
-    <div class="skeleton-card"></div>
-    <div class="skeleton-card"></div>
-    <div class="skeleton-card"></div>
-    <div class="skeleton-card"></div>
-    <div class="skeleton-card"></div>
-    <div class="skeleton-card"></div>
+  <!-- Loading -->
+  <div id="loading" class="loading">
+    <div class="spinner"></div>
+    <p>Carregando dados...</p>
   </div>
 
   <!-- ── ABA MERCADO ── -->
@@ -404,14 +364,6 @@
 
 </div>
 <script>
-  // ── Detecao de ambiente ────────────────────────────────────────────
-  // Local (PC): API_BASE vazio -> usa arquivos da mesma pasta (dados.json, portfolio.json)
-  // Remoto (iPhone via GitHub Pages): aponta para o backend no Render.
-  // TROCAR a URL abaixo pela do seu Render Web Service apos o deploy.
-  var BACKEND_URL = 'https://crypto-dash-gustavo.fly.dev';
-  var IS_LOCAL    = location.hostname === 'localhost' || location.hostname === '127.0.0.1' || location.protocol === 'file:';
-  var API_BASE    = IS_LOCAL ? '' : BACKEND_URL;
-
   var dadosMercado   = null;
   var dadosPortfolio = null;
   var taxaBRL        = null;
@@ -438,7 +390,6 @@
 
   // ── Atualizar ──────────────────────────────────────────────────────
   function atualizar() {
-    _resetCountdown();
     if (abaAtual === 'mercado')   carregarMercado();
     else                          carregarPortfolio();
   }
@@ -448,7 +399,7 @@
     mostrarLoading(true);
     esconder('alert-error'); esconder('alert-success');
     try {
-      var resp = await fetch(API_BASE + '/dados.json?t=' + Date.now(), { cache: 'no-store' });
+      var resp = await fetch('dados.json?t=' + Date.now(), { cache: 'no-store' });
       if (!resp.ok) throw new Error('HTTP ' + resp.status + ' — dados.json nao encontrado');
       dadosMercado = await resp.json();
       if (!dadosMercado || !dadosMercado.coins) throw new Error('Formato invalido');
@@ -562,31 +513,18 @@
 
   // ── Portfolio ──────────────────────────────────────────────────────
   async function carregarPortfolio() {
-    if (_carregandoPortfolio) return;
-    _carregandoPortfolio = true;
     mostrarLoading(true);
     esconder('alert-error'); esconder('alert-success');
     try {
-      // Dispara portfolio + cotacao BRL em paralelo — BRL pode falhar silenciosamente
-      var results = await Promise.all([
-        fetch(API_BASE + '/portfolio.json?t=' + Date.now(), { cache: 'no-store' }),
-        fetch('https://economia.awesomeapi.com.br/json/last/USD-BRL', { cache: 'no-store' })
-          .catch(function(){ return null; })
-      ]);
-      var resp = results[0];
-      var rBRL = results[1];
-
+      var resp = await fetch('portfolio.json?t=' + Date.now(), { cache: 'no-store' });
       if (!resp.ok) throw new Error('HTTP ' + resp.status + ' — portfolio.json nao encontrado');
       dadosPortfolio = await resp.json();
       if (!dadosPortfolio || !dadosPortfolio.coins) throw new Error('Formato invalido');
-
-      taxaBRL = null;
-      if (rBRL && rBRL.ok) {
-        try {
-          var dBRL = await rBRL.json();
-          taxaBRL = parseFloat(dBRL.USDBRL.bid);
-        } catch(_) {}
-      }
+      try {
+        var rBRL = await fetch('https://economia.awesomeapi.com.br/json/last/USD-BRL', { cache: 'no-store' });
+        var dBRL = await rBRL.json();
+        taxaBRL = parseFloat(dBRL.USDBRL.bid);
+      } catch(_) { taxaBRL = null; }
       mostrarLoading(false);
       mostrar('aba-portfolio');
       mostrar('portfolio-content'); esconder('portfolio-nodata');
@@ -600,8 +538,6 @@
       mostrar('aba-portfolio');
       esconder('portfolio-content'); mostrar('portfolio-nodata');
       mostrarAlerta('error', 'ERRO: ' + err.message);
-    } finally {
-      _carregandoPortfolio = false;
     }
   }
 
@@ -666,24 +602,19 @@
       data: { labels: labels, datasets: [{ data: valores, backgroundColor: coresPie.slice(0, labels.length),
         borderColor: '#0b1628', borderWidth: 2 }] },
       options: { responsive:true, maintainAspectRatio:false,
-        layout: { padding: 36 },
         plugins: {
-          legend: { display: false },
-          title:{display:false},
+          legend:{ position:'right', labels:{color:COR_TICK,font:{size:11},padding:14} },
+          title:{display:true,text:'ALOCACAO (%)',color:COR_MUTED,font:{size:10,weight:'700'},padding:{bottom:8}},
           datalabels: {
-            anchor: 'end',
-            align: 'end',
-            offset: 6,
-            color: function(ctx) { return coresPie[ctx.dataIndex] || '#fff'; },
-            font: { size: 10, weight: 'bold' },
-            formatter: function(value, ctx) {
+            color: '#fff',
+            font: { size: 11, weight: 'bold' },
+            formatter: function(value) {
               var pct = (value / totalValor * 100);
-              if (pct < 2) return '';
-              return ctx.chart.data.labels[ctx.dataIndex] + '\n' + pct.toFixed(1) + '%';
+              return pct < 2 ? '' : pct.toFixed(1) + '%';
             }
           }
         },
-        cutout: '55%'
+        cutout: '60%'
       }
     });
 
@@ -759,12 +690,7 @@
   // ── Helpers ────────────────────────────────────────────────────────
   function atualizarTimestamp(iso) {
     var el = document.getElementById('timestamp');
-    if (!iso) return;
-    // iOS Safari interpreta datetime sem fuso como UTC, causando +3h no Brasil.
-    // Extraímos as partes diretamente para evitar qualquer conversão de fuso.
-    var m = iso.match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})/);
-    if (m) el.textContent = m[3] + '/' + m[2] + '/' + m[1] + ' ' + m[4] + ':' + m[5];
-    else   el.textContent = iso;
+    if (iso) el.textContent = new Date(iso).toLocaleString('pt-BR');
   }
 
   function fmt(n) {
@@ -786,29 +712,14 @@
     if (tipo==='success') setTimeout(function(){esconder('alert-'+tipo);}, 3000);
   }
 
-  var _countdownSec = 60;
-  var _carregandoPortfolio = false;
-  function _resetCountdown() {
-    _countdownSec = 60;
-    var el = document.getElementById('countdown');
-    if (el) el.textContent = _countdownSec;
-  }
-  setInterval(function() {
-    if (document.hidden) return;
-    _countdownSec--;
-    var el = document.getElementById('countdown');
-    if (el) el.textContent = Math.max(0, _countdownSec);
-    if (_countdownSec <= 0) { _resetCountdown(); atualizar(); }
-  }, 1000);
-  window.addEventListener('load', function() { atualizar(); _resetCountdown(); });
+  setInterval(function(){ if (!document.hidden) atualizar(); }, 60000);
+  window.addEventListener('load', atualizar);
 
-  // Heartbeat — so faz sentido localmente (servidor.py encerra coletores quando ping para).
-  // No iPhone/Render, ignorado.
-  if (IS_LOCAL) {
-    setInterval(function(){
-      fetch('/ping', { cache: 'no-store' }).catch(function(){});
-    }, 2000);
-  }
+  // Heartbeat — informa o servidor que o browser ainda esta aberto.
+  // Quando a aba fechar, os pings param e o servidor encerra os coletores.
+  setInterval(function(){
+    fetch('/ping', { cache: 'no-store' }).catch(function(){});
+  }, 2000);
 </script>
 </body>
 </html>
