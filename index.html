@@ -281,6 +281,8 @@
       body { padding: 12px; }
       .header { flex-direction: column; align-items: flex-start; }
       .price-value, .p-valor, .summary-value { font-size: 18px; }
+      /* iPhone: empilha os dois graficos da alocacao verticalmente */
+      #aba-portfolio .charts-grid { grid-template-columns: 1fr !important; }
     }
   </style>
 </head>
@@ -651,14 +653,16 @@
         borderColor: '#0b1628', borderWidth: 2 }] },
       options: { responsive:true, maintainAspectRatio:false,
         plugins: {
-          legend:{ position:'right', labels:{color:COR_TICK,font:{size:11},padding:14} },
+          legend: { display: false },
           title:{display:true,text:'ALOCACAO (%)',color:COR_MUTED,font:{size:10,weight:'700'},padding:{bottom:8}},
           datalabels: {
             color: '#fff',
             font: { size: 11, weight: 'bold' },
-            formatter: function(value) {
+            textAlign: 'center',
+            formatter: function(value, ctx) {
               var pct = (value / totalValor * 100);
-              return pct < 2 ? '' : pct.toFixed(1) + '%';
+              if (pct < 3) return '';
+              return ctx.chart.data.labels[ctx.dataIndex] + '\n' + pct.toFixed(1) + '%';
             }
           }
         },
