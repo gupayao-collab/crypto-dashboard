@@ -157,6 +157,36 @@
     }
     @keyframes spin { to { transform: rotate(360deg); } }
 
+    /* ── Skeleton cards (loading state) ── */
+    .skeleton-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(290px, 1fr));
+      gap: 14px;
+    }
+    .skeleton-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 20px;
+      min-height: 168px;
+      position: relative;
+      overflow: hidden;
+    }
+    .skeleton-card::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(90deg,
+        transparent 0%,
+        rgba(0,212,255,0.07) 50%,
+        transparent 100%);
+      animation: shimmer 1.4s linear infinite;
+    }
+    @keyframes shimmer {
+      from { transform: translateX(-100%); }
+      to   { transform: translateX(100%);  }
+    }
+
     /* ── Market cards ── */
     .cards-grid {
       display: grid;
@@ -286,6 +316,7 @@
       body { padding: 12px; }
       .header { flex-direction: column; align-items: flex-start; }
       .price-value, .p-valor, .summary-value { font-size: 18px; }
+      #aba-portfolio .charts-grid { grid-template-columns: 1fr !important; }
     }
   </style>
 </head>
@@ -314,10 +345,14 @@
   <div id="alert-error"   class="alert-box alert-error"></div>
   <div id="alert-success" class="alert-box alert-success"></div>
 
-  <!-- Loading -->
-  <div id="loading" class="loading">
-    <div class="spinner"></div>
-    <p>Carregando dados...</p>
+  <!-- Loading (skeleton cards — evita salto de layout quando os dados chegam) -->
+  <div id="loading" class="skeleton-grid">
+    <div class="skeleton-card"></div>
+    <div class="skeleton-card"></div>
+    <div class="skeleton-card"></div>
+    <div class="skeleton-card"></div>
+    <div class="skeleton-card"></div>
+    <div class="skeleton-card"></div>
   </div>
 
   <!-- ── ABA MERCADO ── -->
@@ -532,15 +567,26 @@
     mostrarLoading(true);
     esconder('alert-error'); esconder('alert-success');
     try {
-      var resp = await fetch(API_BASE + '/portfolio.json?t=' + Date.now(), { cache: 'no-store' });
+      // Dispara portfolio + cotacao BRL em paralelo — BRL pode falhar silenciosamente
+      var results = await Promise.all([
+        fetch(API_BASE + '/portfolio.json?t=' + Date.now(), { cache: 'no-store' }),
+        fetch('https://economia.awesomeapi.com.br/json/last/USD-BRL', { cache: 'no-store' })
+          .catch(function(){ return null; })
+      ]);
+      var resp = results[0];
+      var rBRL = results[1];
+
       if (!resp.ok) throw new Error('HTTP ' + resp.status + ' — portfolio.json nao encontrado');
       dadosPortfolio = await resp.json();
       if (!dadosPortfolio || !dadosPortfolio.coins) throw new Error('Formato invalido');
-      try {
-        var rBRL = await fetch('https://economia.awesomeapi.com.br/json/last/USD-BRL', { cache: 'no-store' });
-        var dBRL = await rBRL.json();
-        taxaBRL = parseFloat(dBRL.USDBRL.bid);
-      } catch(_) { taxaBRL = null; }
+
+      taxaBRL = null;
+      if (rBRL && rBRL.ok) {
+        try {
+          var dBRL = await rBRL.json();
+          taxaBRL = parseFloat(dBRL.USDBRL.bid);
+        } catch(_) {}
+      }
       mostrarLoading(false);
       mostrar('aba-portfolio');
       mostrar('portfolio-content'); esconder('portfolio-nodata');
@@ -713,7 +759,12 @@
   // ── Helpers ────────────────────────────────────────────────────────
   function atualizarTimestamp(iso) {
     var el = document.getElementById('timestamp');
-    if (iso) el.textContent = new Date(iso).toLocaleString('pt-BR');
+    if (!iso) return;
+    // iOS Safari interpreta datetime sem fuso como UTC, causando +3h no Brasil.
+    // Extraímos as partes diretamente para evitar qualquer conversão de fuso.
+    var m = iso.match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})/);
+    if (m) el.textContent = m[3] + '/' + m[2] + '/' + m[1] + ' ' + m[4] + ':' + m[5];
+    else   el.textContent = iso;
   }
 
   function fmt(n) {
