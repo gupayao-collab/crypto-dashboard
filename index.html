@@ -371,6 +371,11 @@
   var abaAtual       = 'mercado';
   var charts         = {};
 
+  // Guards de concorrência — impedem duas execuções simultâneas
+  // (auto-refresh + clique manual) de criarem o mesmo Chart na mesma canvas.
+  var _renderizandoPortfolio = false;
+  var _renderizandoMercado   = false;
+
   var COR_ACCENT = '#00d4ff';
   var COR_GREEN  = '#00ff9d';
   var COR_RED    = '#ff4d6d';
@@ -588,8 +593,12 @@
   }
 
   async function renderizarGraficosPortfolio() {
-    // Destrói qualquer chart já anexado às canvas — inclusive os que ficaram pendurados
-    // por uma chamada anterior assíncrona (race condition no auto-refresh).
+    // Guard: se uma renderização anterior ainda está rodando (no await dos klines),
+    // ignora esta chamada — evita race condition no auto-refresh de 60s.
+    if (_renderizandoPortfolio) return;
+    _renderizandoPortfolio = true;
+    try {
+    // Destrói qualquer chart já anexado às canvas — belt and suspenders.
     ['chart-alocacao','chart-pl'].forEach(function(id){
       var existing = Chart.getChart(id);
       if (existing) existing.destroy();
@@ -647,6 +656,11 @@
     var labV = valorizacao.map(function(v){return v.coin;});
     var pctV = valorizacao.map(function(v){return v.pct;});
 
+    // Belt and suspenders: destrói qualquer chart-pl pendurado antes de criar o novo,
+    // mesmo no caso de uma chamada concorrente ter conseguido criar um durante o await.
+    var ex = Chart.getChart('chart-pl');
+    if (ex) ex.destroy();
+
     charts['chart-pl'] = new Chart(document.getElementById('chart-pl'), {
       type: 'bar',
       data: { labels: labV, datasets: [{ data: pctV,
@@ -661,6 +675,9 @@
             ticks:{color:COR_TICK,callback:function(v){return v.toFixed(1)+'%';}} } }
       }
     });
+    } finally {
+      _renderizandoPortfolio = false;
+    }
   }
 
   function renderizarCardsPortfolio() {
