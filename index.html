@@ -476,7 +476,11 @@
   }
 
   function renderizarGraficosMercado() {
-    ['chart-precos','chart-variacoes'].forEach(function(id){ if(charts[id]){charts[id].destroy();delete charts[id];} });
+    ['chart-precos','chart-variacoes'].forEach(function(id){
+      var existing = Chart.getChart(id);
+      if (existing) existing.destroy();
+      if (charts[id]) delete charts[id];
+    });
     var entries = Object.entries(dadosMercado.coins).filter(function(p){return p[1].preco_atual>0&&p[1].historico_24h.length>0;});
     var labels  = entries.map(function(p){return p[0];});
     var precos  = entries.map(function(p){return p[1].preco_atual;});
@@ -584,7 +588,13 @@
   }
 
   async function renderizarGraficosPortfolio() {
-    ['chart-alocacao','chart-pl'].forEach(function(id){ if(charts[id]){charts[id].destroy();delete charts[id];} });
+    // Destrói qualquer chart já anexado às canvas — inclusive os que ficaram pendurados
+    // por uma chamada anterior assíncrona (race condition no auto-refresh).
+    ['chart-alocacao','chart-pl'].forEach(function(id){
+      var existing = Chart.getChart(id);
+      if (existing) existing.destroy();
+      if (charts[id]) delete charts[id];
+    });
 
     // Coins ordenadas decrescente por valor (alocacao)
     var coins = Object.entries(dadosPortfolio.coins)
