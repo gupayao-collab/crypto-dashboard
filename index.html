@@ -270,6 +270,10 @@
     .pl-badge.neg { background: rgba(255,77,109,.1); color: var(--red);   border: 1px solid rgba(255,77,109,.3); }
 
     .pie-wrap { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; padding: 14px; height: 320px; }
+    .val-toggle { display: flex; gap: 6px; margin-bottom: 10px; justify-content: center; flex-wrap: wrap; }
+    .val-btn { background: var(--surface); color: var(--muted); border: 1px solid var(--border); border-radius: 6px; padding: 4px 12px; font-size: 11px; font-weight: 700; cursor: pointer; font-family: inherit; letter-spacing: 1px; transition: all .15s; }
+    .val-btn:hover { color: var(--text); border-color: var(--accent); }
+    .val-btn.active { background: var(--accent); color: var(--bg); border-color: var(--accent); }
 
     /* ── No data ── */
     .no-data { text-align: center; padding: 80px 20px; color: var(--muted); display: none; }
@@ -342,7 +346,15 @@
         <div class="section-title">// Alocacao do Portfolio</div>
         <div class="charts-grid" style="grid-template-columns:1fr 1fr">
           <div class="pie-wrap"><canvas id="chart-alocacao"></canvas></div>
-          <div class="pie-wrap"><canvas id="chart-pl"></canvas></div>
+          <div class="pie-wrap" style="display:flex;flex-direction:column">
+            <div class="val-toggle">
+              <button id="btn-val-7D"  class="val-btn"        onclick="trocarPeriodoVal('7D')">7D</button>
+              <button id="btn-val-30D" class="val-btn active" onclick="trocarPeriodoVal('30D')">30D</button>
+              <button id="btn-val-6M"  class="val-btn"        onclick="trocarPeriodoVal('6M')">6M</button>
+              <button id="btn-val-1A"  class="val-btn"        onclick="trocarPeriodoVal('1A')">1A</button>
+            </div>
+            <div style="flex:1;min-height:0;position:relative"><canvas id="chart-pl"></canvas></div>
+          </div>
         </div>
       </div>
       <div class="section-title" style="margin-bottom:14px">// Ativos</div>
@@ -382,6 +394,17 @@
   var filtroAtual    = 'todos';
   var abaAtual       = 'mercado';
   var charts         = {};
+
+  // Valorizacao por periodo (grafico de barras do portfolio)
+  var PERIODOS_VAL = {
+    '7D':  { label: '7 DIAS',   interval: '1d', limit: 8  },
+    '30D': { label: '30 DIAS',  interval: '1d', limit: 31 },
+    '6M':  { label: '6 MESES',  interval: '1M', limit: 7  },
+    '1A':  { label: '12 MESES', interval: '1M', limit: 13 }
+  };
+  var _periodoVal = '30D';   // periodo selecionado atualmente
+  var _coinsVal   = [];      // simbolos das coins do portfolio (ex: ['BTC','ETH'])
+  var _valCache   = {};      // cache de valorizacao por periodo, limpo a cada recoleta
 
   // Guards de concorrência — impedem duas execuções simultâneas
   // (auto-refresh + clique manual) de criarem o mesmo Chart na mesma canvas.
@@ -683,22 +706,55 @@
       }
     });
 
-    // Grafico: valorizacao 30 dias — busca klines da Binance
-    var valorizacao = [];
-    for (var i = 0; i < coins.length; i++) {
-      var coin = coins[i][0];
-      try {
-        var r = await fetch('https://api.binance.com/api/v3/klines?symbol=' + coin + 'USDT&interval=1d&limit=31', { cache: 'no-store' });
-        var klines = await r.json();
-        if (Array.isArray(klines) && klines.length >= 2) {
-          var p0  = parseFloat(klines[0][4]);
-          var p1  = parseFloat(klines[klines.length-1][4]);
-          var pct = (p1 - p0) / p0 * 100;
-          valorizacao.push({coin: coin, pct: pct});
-        }
-      } catch(_) {}
+    // Grafico: valorizacao por periodo (7D / 30D / 6M / 1A) — busca klines da Binance.
+    // Guarda a lista de coins e limpa o cache (precos mudaram nesta recoleta).
+    _coinsVal = coins.map(function(p){return p[0];});
+    _valCache = {};
+    await renderizarValorizacao(_periodoVal);
+    } finally {
+      _renderizandoPortfolio = false;
     }
-    valorizacao.sort(function(a,b){return b.pct - a.pct;});
+  }
+
+  // Troca o periodo do grafico de valorizacao (chamado pelos botoes 7D/30D/6M/1A)
+  function trocarPeriodoVal(periodo) {
+    if (!PERIODOS_VAL[periodo]) return;
+    renderizarValorizacao(periodo);
+  }
+
+  // Busca a valorizacao de cada coin no periodo e (re)desenha o grafico chart-pl.
+  // Usa cache por periodo para que alternar entre botoes ja vistos seja instantaneo.
+  async function renderizarValorizacao(periodo) {
+    _periodoVal = periodo;
+    var cfg = PERIODOS_VAL[periodo];
+
+    // Atualiza o estado visual dos botoes (destaca o ativo)
+    Object.keys(PERIODOS_VAL).forEach(function(p){
+      var b = document.getElementById('btn-val-' + p);
+      if (b) b.className = 'val-btn' + (p === periodo ? ' active' : '');
+    });
+
+    var valorizacao = _valCache[periodo];
+    if (!valorizacao) {
+      valorizacao = [];
+      for (var i = 0; i < _coinsVal.length; i++) {
+        var coin = _coinsVal[i];
+        try {
+          var r = await fetch('https://api.binance.com/api/v3/klines?symbol=' + coin +
+                              'USDT&interval=' + cfg.interval + '&limit=' + cfg.limit, { cache: 'no-store' });
+          var klines = await r.json();
+          if (Array.isArray(klines) && klines.length >= 2) {
+            var p0  = parseFloat(klines[0][4]);
+            var p1  = parseFloat(klines[klines.length-1][4]);
+            var pct = (p1 - p0) / p0 * 100;
+            valorizacao.push({coin: coin, pct: pct});
+          }
+        } catch(_) {}
+      }
+      valorizacao.sort(function(a,b){return b.pct - a.pct;});
+      _valCache[periodo] = valorizacao;
+    }
+
     var labV = valorizacao.map(function(v){return v.coin;});
     var pctV = valorizacao.map(function(v){return v.pct;});
 
@@ -714,16 +770,13 @@
         borderColor: pctV.map(function(v){return v>=0?COR_GREEN:COR_RED;}),
         borderWidth: 1, borderRadius: 4, borderSkipped: false }] },
       options: { responsive:true, maintainAspectRatio:false,
-        plugins:{ legend:{display:false}, title:{display:true,text:'VALORIZACAO 30 DIAS (%)',color:COR_MUTED,font:{size:10,weight:'700'},padding:{bottom:8}} },
+        plugins:{ legend:{display:false}, title:{display:true,text:'VALORIZACAO ' + cfg.label + ' (%)',color:COR_MUTED,font:{size:10,weight:'700'},padding:{bottom:8}} },
         scales:{
           x:{ticks:{color:COR_TICK,font:{size:11}},grid:{color:COR_GRID}},
           y:{ grid:{color:function(c){return c.tick.value===0?'#334':COR_GRID;},lineWidth:function(c){return c.tick.value===0?2:1;}},
             ticks:{color:COR_TICK,callback:function(v){return v.toFixed(1)+'%';}} } }
       }
     });
-    } finally {
-      _renderizandoPortfolio = false;
-    }
   }
 
   function renderizarCardsPortfolio() {
