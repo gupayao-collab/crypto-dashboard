@@ -387,6 +387,7 @@
   // (auto-refresh + clique manual) de criarem o mesmo Chart na mesma canvas.
   var _renderizandoPortfolio = false;
   var _renderizandoMercado   = false;
+  var _editandoDeposito      = false;  // true enquanto o campo de editar deposito esta aberto
 
   var COR_ACCENT = '#00d4ff';
   var COR_GREEN  = '#00ff9d';
@@ -564,7 +565,12 @@
         var rBRL = await fetch('https://economia.awesomeapi.com.br/json/last/USD-BRL', { cache: 'no-store' });
         var dBRL = await rBRL.json();
         taxaBRL = parseFloat(dBRL.USDBRL.bid);
-      } catch(_) { taxaBRL = null; }
+        if (taxaBRL > 0) localStorage.setItem('taxaBRL', taxaBRL);  // guarda a ultima cotacao boa
+      } catch(_) {
+        // Câmbio fora do ar: usa a última cotação salva em vez de trocar a métrica.
+        var cached = parseFloat(localStorage.getItem('taxaBRL'));
+        taxaBRL = (cached > 0) ? cached : null;
+      }
       mostrarLoading(false);
       mostrar('aba-portfolio');
       mostrar('portfolio-content'); esconder('portfolio-nodata');
@@ -585,23 +591,26 @@
     var p = dadosPortfolio;
     var depositoBRL = p.deposito_inicial_brl || 3000;
 
-    var plPos, plValor, plPct, valorEmReaisCard = '';
-    if (taxaBRL) {
+    // L/P SEMPRE com a mesma base: valor atual em reais vs deposito inicial em reais.
+    // Se o cambio estiver indisponivel (e sem cache), exibe "—" em vez de trocar a metrica.
+    var cambioOk   = !!taxaBRL && taxaBRL > 0;
+    var plPos      = true;
+    var plValorTxt = 'R$ —';
+    var plPctTxt   = 'cambio indisponivel';
+    var valorEmReaisCard = '';
+
+    if (cambioOk) {
       var valorBRL = p.total_valor_usd * taxaBRL;
       var plBRL    = valorBRL - depositoBRL;
-      plPos  = plBRL >= 0;
-      plPct  = (plBRL / depositoBRL * 100).toFixed(2);
-      plValor = (plPos?'+':'') + 'R$ ' + Math.abs(plBRL).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});
+      plPos      = plBRL >= 0;
+      plValorTxt = (plPos?'+':'-') + 'R$ ' + Math.abs(plBRL).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});
+      plPctTxt   = (plPos?'+':'') + (plBRL / depositoBRL * 100).toFixed(2) + '%';
       valorEmReaisCard =
         '<div class="summary-card" style="border-color:#ffd166">' +
           '<div class="summary-label">VALOR EM REAIS</div>' +
           '<div class="summary-value" style="color:#ffd166">R$ ' + valorBRL.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2}) + '</div>' +
           '<div class="summary-sub">USD 1 = R$ ' + taxaBRL.toFixed(2) + '</div>' +
         '</div>';
-    } else {
-      plPos   = p.pl_total_pct >= 0;
-      plPct   = (plPos?'+':'') + p.pl_total_pct.toFixed(2);
-      plValor = (plPos?'+':'') + '$' + Math.abs(p.pl_total_usd).toFixed(2);
     }
 
     document.getElementById('portfolio-summary').innerHTML =
@@ -623,10 +632,10 @@
           '<button onclick="fecharEdicaoDeposito()" style="background:transparent;color:var(--muted);border:1px solid var(--border);border-radius:6px;padding:4px 8px;cursor:pointer;font-size:13px">✕</button>' +
         '</div>' +
       '</div>' +
-      '<div class="summary-card ' + (plPos?'green-card':'red-card') + '">' +
+      '<div class="summary-card ' + (cambioOk ? (plPos?'green-card':'red-card') : '') + '">' +
         '<div class="summary-label">LUCRO / PREJUIZO</div>' +
-        '<div class="summary-value ' + (plPos?'positive':'negative') + '">' + plValor + '</div>' +
-        '<div class="summary-sub ' + (plPos?'positive':'negative') + '">' + (plPos?'+':'') + plPct + '%</div>' +
+        '<div class="summary-value ' + (cambioOk ? (plPos?'positive':'negative') : '') + '">' + plValorTxt + '</div>' +
+        '<div class="summary-sub ' + (cambioOk ? (plPos?'positive':'negative') : '') + '">' + plPctTxt + '</div>' +
       '</div>' +
       valorEmReaisCard;
   }
@@ -644,20 +653,26 @@
       if (charts[id]) delete charts[id];
     });
 
-    // Coins ordenadas decrescente por valor (alocacao)
+    // Coins ordenadas decrescente por valor (usada na alocacao E no grafico 30 dias)
     var coins = Object.entries(dadosPortfolio.coins)
       .filter(function(p){return p[1].valor_atual>0;})
       .sort(function(a,b){return b[1].valor_atual - a[1].valor_atual;});
-    var labels  = coins.map(function(p){return p[0];});
-    var valores = coins.map(function(p){return p[1].valor_atual;});
     var coresPie = ['#00d4ff','#00ff9d','#ffd166','#ff4d6d','#a78bfa','#38bdf8','#f472b6','#4ade80','#fb923c'];
 
-    // Grafico de alocacao (pizza) — ordenado decrescente
-    var totalValor = valores.reduce(function(a,b){return a+b;}, 0);
+    // ── Alocacao: inclui o USDT livre para somar 100% do patrimonio ──
+    var alocLabels  = coins.map(function(p){return p[0];});
+    var alocValores = coins.map(function(p){return p[1].valor_atual;});
+    var usdtLivre   = dadosPortfolio.usdt_livre || 0;
+    if (usdtLivre > 0) { alocLabels.push('USDT'); alocValores.push(usdtLivre); }
+    var coresAloc = alocLabels.map(function(lbl, i){
+      return lbl === 'USDT' ? '#64748b' : coresPie[i % coresPie.length];  // USDT em cinza (caixa)
+    });
+
+    var totalValor = alocValores.reduce(function(a,b){return a+b;}, 0);
     charts['chart-alocacao'] = new Chart(document.getElementById('chart-alocacao'), {
       type: 'doughnut',
       plugins: [ChartDataLabels],
-      data: { labels: labels, datasets: [{ data: valores, backgroundColor: coresPie.slice(0, labels.length),
+      data: { labels: alocLabels, datasets: [{ data: alocValores, backgroundColor: coresAloc,
         borderColor: '#0b1628', borderWidth: 2 }] },
       options: { responsive:true, maintainAspectRatio:false,
         plugins: {
@@ -758,7 +773,13 @@
   // ── Helpers ────────────────────────────────────────────────────────
   function atualizarTimestamp(iso) {
     var el = document.getElementById('timestamp');
-    if (iso) el.textContent = new Date(iso).toLocaleString('pt-BR');
+    if (!iso) return;
+    // Mostra os numeros literais da string ISO, sem reconverter fuso.
+    // Evita o bug do iOS Safari (que somava +3h interpretando como UTC) e
+    // garante que a hora de Brasilia gravada pelo backend apareca igual.
+    var m = iso.match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})/);
+    if (m) el.textContent = m[3] + '/' + m[2] + '/' + m[1] + ' ' + m[4] + ':' + m[5];
+    else   el.textContent = iso;
   }
 
   function fmt(n) {
@@ -782,6 +803,7 @@
 
   // ── Edição de depósito ────────────────────────────────────────────
   function abrirEdicaoDeposito(valorAtual) {
+    _editandoDeposito = true;  // pausa o auto-refresh para nao apagar a digitacao
     document.getElementById('deposito-edit-wrap').style.display = 'none';
     var wrap = document.getElementById('deposito-input-wrap');
     wrap.style.display = 'flex';
@@ -792,6 +814,7 @@
   }
 
   function fecharEdicaoDeposito() {
+    _editandoDeposito = false;
     document.getElementById('deposito-input-wrap').style.display = 'none';
     document.getElementById('deposito-edit-wrap').style.display = '';
   }
@@ -825,7 +848,7 @@
     }
   }
 
-  setInterval(function(){ if (!document.hidden) atualizar(); }, 60000);
+  setInterval(function(){ if (!document.hidden && !_editandoDeposito) atualizar(); }, 60000);
   window.addEventListener('load', atualizar);
 
   // Heartbeat — informa o servidor que o browser ainda esta aberto.
