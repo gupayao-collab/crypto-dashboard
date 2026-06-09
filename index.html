@@ -746,12 +746,24 @@
 
     coins.forEach(function(pair) {
       var coin = pair[0], d = pair[1];
+      var conhecido = d.custo_conhecido !== false;  // default true (compat. json antigo)
       var plPos = d.pl_pct >= 0;
-      var sinalPct = (plPos?'+':'') + d.pl_pct.toFixed(2) + '%';
-      var sinalUsd = (plPos?'+$':'-$') + Math.abs(d.pl_usd).toFixed(2);
+
+      var plBadge, custoBaseTxt, precoMedioTxt;
+      if (conhecido) {
+        var sinalPct = (plPos?'+':'') + d.pl_pct.toFixed(2) + '%';
+        var sinalUsd = (plPos?'+$':'-$') + Math.abs(d.pl_usd).toFixed(2);
+        plBadge      = '<span class="pl-badge ' + (plPos?'pos':'neg') + '">' + sinalPct + ' (' + sinalUsd + ')</span>';
+        custoBaseTxt = '$' + d.custo_base.toFixed(2);
+        precoMedioTxt = '$' + fmt(d.preco_medio);
+      } else {
+        plBadge      = '<span class="pl-badge" style="background:rgba(74,96,128,.15);color:var(--muted);border:1px solid var(--border)" title="Sem historico de compra em USDT ou BRL para esta coin">— sem dados</span>';
+        custoBaseTxt = '—';
+        precoMedioTxt = '—';
+      }
 
       var card = document.createElement('div');
-      card.className = 'p-card ' + (plPos ? 'pl-positive' : 'pl-negative');
+      card.className = 'p-card ' + (conhecido ? (plPos ? 'pl-positive' : 'pl-negative') : '');
       card.innerHTML =
         '<div class="p-card-header">' +
           '<span class="p-coin">' + coin + '</span>' +
@@ -760,11 +772,9 @@
         '<div class="p-rows">' +
           '<div class="p-row"><span class="p-key">Quantidade</span><span class="p-val">' + fmtQtd(d.quantidade, d.preco_atual) + '</span></div>' +
           '<div class="p-row"><span class="p-key">Preco Atual</span><span class="p-val">$' + fmt(d.preco_atual) + '</span></div>' +
-          '<div class="p-row"><span class="p-key">Preco Medio</span><span class="p-val" style="color:var(--muted)">$' + fmt(d.preco_medio) + '</span></div>' +
-          '<div class="p-row"><span class="p-key">Custo Base</span><span class="p-val" style="color:var(--muted)">$' + d.custo_base.toFixed(2) + '</span></div>' +
-          '<div class="p-row"><span class="p-key">P&L</span>' +
-            '<span class="pl-badge ' + (plPos?'pos':'neg') + '">' + sinalPct + ' (' + sinalUsd + ')</span>' +
-          '</div>' +
+          '<div class="p-row"><span class="p-key">Preco Medio</span><span class="p-val" style="color:var(--muted)">' + precoMedioTxt + '</span></div>' +
+          '<div class="p-row"><span class="p-key">Custo Base</span><span class="p-val" style="color:var(--muted)">' + custoBaseTxt + '</span></div>' +
+          '<div class="p-row"><span class="p-key">P&L</span>' + plBadge + '</div>' +
         '</div>';
       container.appendChild(card);
     });
