@@ -613,7 +613,15 @@
       '<div class="summary-card">' +
         '<div class="summary-label">TOTAL INVESTIDO</div>' +
         '<div class="summary-value" style="color:#ffd166">R$ ' + depositoBRL.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2}) + '</div>' +
-        '<div class="summary-sub">deposito inicial</div>' +
+        '<div id="deposito-edit-wrap" style="margin-top:4px">' +
+          '<span class="summary-sub" style="cursor:pointer;color:var(--accent);user-select:none" onclick="abrirEdicaoDeposito(' + depositoBRL + ')">✏ editar</span>' +
+        '</div>' +
+        '<div id="deposito-input-wrap" style="display:none;margin-top:8px;gap:4px;align-items:center">' +
+          '<input id="deposito-input" type="number" min="1" step="100" placeholder="Ex: 3500"' +
+          ' style="width:100px;background:var(--surface2);border:1px solid var(--accent);color:var(--text);border-radius:6px;padding:4px 8px;font-size:13px;font-family:monospace" />' +
+          '<button onclick="salvarDeposito()" style="background:var(--accent);color:var(--bg);border:none;border-radius:6px;padding:4px 10px;cursor:pointer;font-weight:700;font-size:13px">✓</button>' +
+          '<button onclick="fecharEdicaoDeposito()" style="background:transparent;color:var(--muted);border:1px solid var(--border);border-radius:6px;padding:4px 8px;cursor:pointer;font-size:13px">✕</button>' +
+        '</div>' +
       '</div>' +
       '<div class="summary-card ' + (plPos?'green-card':'red-card') + '">' +
         '<div class="summary-label">LUCRO / PREJUIZO</div>' +
@@ -770,6 +778,51 @@
     var el = document.getElementById('alert-'+tipo);
     el.innerHTML = msg; el.style.display = 'block';
     if (tipo==='success') setTimeout(function(){esconder('alert-'+tipo);}, 3000);
+  }
+
+  // ── Edição de depósito ────────────────────────────────────────────
+  function abrirEdicaoDeposito(valorAtual) {
+    document.getElementById('deposito-edit-wrap').style.display = 'none';
+    var wrap = document.getElementById('deposito-input-wrap');
+    wrap.style.display = 'flex';
+    var input = document.getElementById('deposito-input');
+    input.value = valorAtual;
+    input.focus();
+    input.select();
+  }
+
+  function fecharEdicaoDeposito() {
+    document.getElementById('deposito-input-wrap').style.display = 'none';
+    document.getElementById('deposito-edit-wrap').style.display = '';
+  }
+
+  async function salvarDeposito() {
+    var brl = parseFloat(document.getElementById('deposito-input').value);
+    if (isNaN(brl) || brl <= 0) {
+      mostrarAlerta('error', 'VALOR INVALIDO — informe um valor em reais maior que zero');
+      return;
+    }
+    var btn = document.querySelector('#deposito-input-wrap button');
+    if (btn) { btn.disabled = true; btn.textContent = '...'; }
+    try {
+      var resp = await fetch(API_BASE + '/deposito', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ brl: brl }),
+        cache: 'no-store'
+      });
+      if (!resp.ok) throw new Error('HTTP ' + resp.status);
+      fecharEdicaoDeposito();
+      // No PC: força recoleta para portfolio.json gravar o novo deposito
+      if (IS_LOCAL) {
+        await fetch('/coletar?tipo=portfolio', { cache: 'no-store' });
+      }
+      await carregarPortfolio();
+    } catch(err) {
+      mostrarAlerta('error', 'ERRO ao salvar deposito: ' + err.message);
+    } finally {
+      if (btn) { btn.disabled = false; btn.textContent = '✓'; }
+    }
   }
 
   setInterval(function(){ if (!document.hidden) atualizar(); }, 60000);
