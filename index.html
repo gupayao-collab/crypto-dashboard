@@ -281,6 +281,49 @@
     .no-data p  { font-size: 12px; margin-top: 8px; }
     .no-data code { background: var(--surface2); border: 1px solid var(--border); color: var(--accent); padding: 3px 9px; border-radius: 4px; font-size: 11px; }
 
+    /* ── 3.1 Tipografia: digitos alinhados (tabular) em todos os numeros ── */
+    .price-value, .stat-value, .p-valor, .p-val, .summary-value, .pl-badge, .mover-chip {
+      font-variant-numeric: tabular-nums;
+    }
+    .summary-value { line-height: 1.15; }
+    .summary-card { display: flex; flex-direction: column; justify-content: center; min-height: 104px; }
+
+    /* ── 3.3 Logos das moedas ── */
+    .coin-name, .p-coin { display: inline-flex; align-items: center; gap: 8px; }
+    .coin-logo { width: 22px; height: 22px; border-radius: 50%; background: var(--surface2); object-fit: contain; flex-shrink: 0; }
+
+    /* ── 2.4 Setinha de tendencia ── */
+    .trend { font-size: 13px; margin-left: 7px; }
+
+    /* ── 1.2 Destaques do dia (movers) ── */
+    .movers-bar { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 16px; align-items: center; }
+    .movers-titulo { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: 1.5px; margin-right: 2px; }
+    .mover-chip { display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; border-radius: 20px; font-size: 12px; font-weight: 700; font-family: 'Courier New', monospace; border: 1px solid; }
+    .mover-chip img { width: 16px; height: 16px; border-radius: 50%; }
+    .mover-chip.up   { background: rgba(0,255,157,.1);  color: var(--green); border-color: rgba(0,255,157,.3); }
+    .mover-chip.down { background: rgba(255,77,109,.1); color: var(--red);   border-color: rgba(255,77,109,.3); }
+    .mover-vazio { font-size: 11px; color: var(--muted); letter-spacing: .5px; }
+
+    /* ── 4.1 Banner de aviso (dados possivelmente desatualizados) ── */
+    .banner-aviso {
+      display: none; align-items: center; gap: 10px;
+      padding: 11px 16px; margin-bottom: 16px; border-radius: 8px;
+      font-size: 12px; line-height: 1.4;
+      background: rgba(255,209,102,.1); border: 1px solid rgba(255,209,102,.35); color: var(--yellow);
+    }
+    .banner-aviso .ico { font-size: 15px; flex-shrink: 0; }
+
+    /* ── 3.2 Skeleton de carregamento ── */
+    .skel-card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 20px; }
+    .skel { background: linear-gradient(90deg, var(--surface2) 25%, rgba(26,47,74,.6) 50%, var(--surface2) 75%);
+      background-size: 200% 100%; animation: shimmer 1.3s ease-in-out infinite; border-radius: 6px; }
+    @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+
+    /* ── 4.2 Botao Atualizar girando ── */
+    .ref-ico { display: inline-block; }
+    button.btn-primary.busy { opacity: .8; cursor: progress; }
+    button.btn-primary.busy .ref-ico { animation: spin .8s linear infinite; }
+
     @media (max-width: 640px) {
       body { padding: 12px; }
       .header { flex-direction: column; align-items: flex-start; }
@@ -300,7 +343,7 @@
       <p>BINANCE API &nbsp;·&nbsp; MONITOR EM TEMPO REAL &nbsp;·&nbsp; AUTO-REFRESH 60s</p>
     </div>
     <div class="controls">
-      <button class="btn-primary" id="btn-atualizar" onclick="atualizar(true)">&#8635; ATUALIZAR</button>
+      <button class="btn-primary" id="btn-atualizar" onclick="atualizar(true)"><span class="ref-ico">&#8635;</span> <span id="btn-atualizar-txt">ATUALIZAR</span></button>
       <div class="timestamp" id="timestamp">—</div>
     </div>
   </div>
@@ -315,6 +358,12 @@
   <div id="alert-error"   class="alert-box alert-error"></div>
   <div id="alert-success" class="alert-box alert-success"></div>
 
+  <!-- Banner de aviso persistente (4.1) -->
+  <div id="banner-aviso" class="banner-aviso">
+    <span class="ico">&#9888;&#65039;</span>
+    <span id="banner-aviso-txt"></span>
+  </div>
+
   <!-- Loading -->
   <div id="loading" class="loading">
     <div class="spinner"></div>
@@ -323,6 +372,7 @@
 
   <!-- ── ABA MERCADO ── -->
   <div id="aba-mercado" style="display:none">
+    <div id="mercado-movers" class="movers-bar" style="display:none"></div>
     <div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap">
       <button class="btn-filter active" onclick="filtrar('todos', this)">TODOS</button>
       <button class="btn-filter" onclick="filtrar('alertas', this)">ALERTAS</button>
@@ -356,6 +406,11 @@
             <div style="flex:1;min-height:0;position:relative"><canvas id="chart-pl"></canvas></div>
           </div>
         </div>
+      </div>
+      <div class="charts-section" style="margin-bottom:20px">
+        <div class="section-title">// Evolucao do Patrimonio</div>
+        <div class="chart-wrap" style="height:260px"><canvas id="chart-evolucao"></canvas></div>
+        <p id="evolucao-hint" style="font-size:10px;color:var(--muted);margin-top:10px;text-align:center;letter-spacing:.5px"></p>
       </div>
       <div class="section-title" style="margin-bottom:14px">// Ativos</div>
       <div id="portfolio-cards" class="portfolio-grid"></div>
@@ -432,45 +487,62 @@
   // forcarColeta = true  -> dispara o coletor no servidor (clique manual)
   // forcarColeta = false -> só relê o JSON ja salvo (auto-refresh de 60s)
   async function atualizar(forcarColeta) {
-    // /coletar so existe no servidor local (servidor.py).
-    // No iPhone (GitHub Pages -> Fly.io), o backend ja cacheia por 30s e
-    // qualquer nova chamada a dados.json/portfolio.json busca da Binance.
-    if (forcarColeta && IS_LOCAL) {
-      var btn = document.getElementById('btn-atualizar');
-      var textoOriginal = btn ? btn.innerHTML : null;
-      if (btn) { btn.disabled = true; btn.innerHTML = '&#8635; COLETANDO...'; }
-      try {
-        var tipo = abaAtual === 'mercado' ? 'mercado' : 'portfolio';
-        var resp = await fetch('/coletar?tipo=' + tipo, { cache: 'no-store' });
-        if (!resp.ok) throw new Error('HTTP ' + resp.status);
-      } catch(err) {
-        mostrarAlerta('error', 'ERRO ao coletar: ' + err.message);
-      } finally {
-        if (btn) { btn.disabled = false; btn.innerHTML = textoOriginal; }
+    // Feedback visual: botao gira e fica desabilitado durante TODO o fluxo (4.2).
+    var btn = document.getElementById('btn-atualizar');
+    var txt = document.getElementById('btn-atualizar-txt');
+    if (btn) { btn.classList.add('busy'); btn.disabled = true; }
+    if (txt) txt.textContent = forcarColeta ? 'COLETANDO...' : 'ATUALIZANDO...';
+    try {
+      // /coletar so existe no servidor local (servidor.py).
+      // No iPhone (GitHub Pages -> Fly.io), o backend ja cacheia por 30s e
+      // qualquer nova chamada a dados.json/portfolio.json busca da Binance.
+      if (forcarColeta && IS_LOCAL) {
+        try {
+          var tipo = abaAtual === 'mercado' ? 'mercado' : 'portfolio';
+          var resp = await fetch('/coletar?tipo=' + tipo, { cache: 'no-store' });
+          if (!resp.ok) throw new Error('HTTP ' + resp.status);
+        } catch(err) {
+          mostrarAlerta('error', 'ERRO ao coletar: ' + err.message);
+        }
       }
+      if (abaAtual === 'mercado')   await carregarMercado();
+      else                          await carregarPortfolio();
+    } finally {
+      if (btn) { btn.classList.remove('busy'); btn.disabled = false; }
+      if (txt) txt.textContent = 'ATUALIZAR';
     }
-    if (abaAtual === 'mercado')   carregarMercado();
-    else                          carregarPortfolio();
   }
 
   // ── Mercado ────────────────────────────────────────────────────────
   async function carregarMercado() {
-    mostrarLoading(true);
     esconder('alert-error'); esconder('alert-success');
+    // Primeira carga (sem dados ainda): mostra esqueleto em vez de tela vazia (3.2).
+    if (!dadosMercado) {
+      mostrarLoading(false);
+      mostrar('aba-mercado'); esconder('no-data');
+      document.getElementById('cards').innerHTML = skelCards(6);
+    } else {
+      mostrarLoading(false);
+    }
     try {
       var resp = await fetch(API_BASE + '/dados.json?t=' + Date.now(), { cache: 'no-store' });
       if (!resp.ok) throw new Error('HTTP ' + resp.status + ' — dados.json nao encontrado');
       dadosMercado = await resp.json();
       if (!dadosMercado || !dadosMercado.coins) throw new Error('Formato invalido');
-      mostrarLoading(false);
-      mostrar('aba-mercado'); esconder('no-data');
+      mostrar('aba-mercado'); esconder('no-data'); esconderBanner();
+      renderMovers();
       renderizarCards();
       renderizarGraficosMercado();
       atualizarTimestamp(dadosMercado.ultima_atualizacao);
       mostrarAlerta('success', 'MERCADO ATUALIZADO');
     } catch(err) {
-      mostrarLoading(false); mostrar('no-data');
-      mostrarAlerta('error', 'ERRO: ' + err.message);
+      // Se ja existem dados antigos, mantem na tela e avisa em vez de apagar tudo (4.1).
+      if (dadosMercado && dadosMercado.coins) {
+        mostrarBanner('Falha ao buscar dados novos da Binance — exibindo a ultima coleta. ' + err.message);
+      } else {
+        mostrar('no-data');
+        mostrarAlerta('error', 'ERRO: ' + err.message);
+      }
     }
   }
 
@@ -501,15 +573,17 @@
       var cor = alta ? COR_GREEN : COR_RED;
       var sinal = alta ? '+' + d.desvio_percent.toFixed(2) + '%' : d.desvio_percent.toFixed(2) + '%';
 
+      var setinha = '<span class="trend ' + (alta?'positive':'negative') + '">' + (alta?'&#9650;':'&#9660;') + '</span>';
+
       var card = document.createElement('div');
       card.className = 'card' + (emAlerta ? ' card-alert' : '');
       card.innerHTML =
         '<div class="card-header">' +
-          '<span class="coin-name">' + coin + '</span>' +
+          '<span class="coin-name">' + imgLogo(coin) + coin + '</span>' +
           '<span class="badge ' + (emAlerta ? 'badge-alert' : 'badge-stable') + '">' + (emAlerta ? 'ALERTA' : 'ESTAVEL') + '</span>' +
         '</div>' +
         '<div class="price-label">PRECO ATUAL</div>' +
-        '<div class="price-value">$' + fmt(d.preco_atual) + '</div>' +
+        '<div class="price-value">$' + fmt(d.preco_atual) + setinha + '</div>' +
         '<div class="stats-grid">' +
           '<div class="stat-box"><div class="stat-label">DESVIO 24H</div>' +
             '<div class="stat-value ' + (alta?'positive':'negative') + '">' + (alta?'&#9650;':'&#9660;') + ' ' + sinal + '</div></div>' +
@@ -574,15 +648,52 @@
     if (dadosMercado) renderizarCards();
   }
 
+  // ── 1.2 Destaques do dia: todas as moedas com variacao >= 3% (alta ou baixa) ──
+  function renderMovers() {
+    var bar = document.getElementById('mercado-movers');
+    if (!bar || !dadosMercado || !dadosMercado.coins) return;
+
+    var movers = Object.entries(dadosMercado.coins)
+      .filter(function(p){ return p[1].preco_atual > 0 && Math.abs(p[1].desvio_percent) >= 3.0; })
+      .sort(function(a,b){ return b[1].desvio_percent - a[1].desvio_percent; });  // maiores altas primeiro
+
+    bar.style.display = 'flex';
+
+    if (movers.length === 0) {
+      bar.innerHTML = '<span class="movers-titulo">Destaques 24h</span>' +
+        '<span class="mover-vazio">Nenhuma moeda variou mais de 3% nas ultimas 24h.</span>';
+      return;
+    }
+
+    var chips = movers.map(function(p){
+      var coin = p[0], dv = p[1].desvio_percent, up = dv >= 0;
+      var sinal = (up ? '+' : '') + dv.toFixed(2) + '%';
+      return '<span class="mover-chip ' + (up?'up':'down') + '">' +
+               '<img src="' + logoURL(coin) + '" alt="" onerror="this.style.display=\'none\'">' +
+               coin + ' ' + (up?'&#9650;':'&#9660;') + ' ' + sinal +
+             '</span>';
+    }).join('');
+
+    bar.innerHTML = '<span class="movers-titulo">Destaques 24h</span>' + chips;
+  }
+
   // ── Portfolio ──────────────────────────────────────────────────────
   async function carregarPortfolio() {
-    mostrarLoading(true);
     esconder('alert-error'); esconder('alert-success');
+    // Primeira carga: esqueleto em vez de tela vazia (3.2).
+    if (!dadosPortfolio) {
+      mostrarLoading(false);
+      mostrar('aba-portfolio'); mostrar('portfolio-content'); esconder('portfolio-nodata');
+      document.getElementById('portfolio-cards').innerHTML = skelCards(4);
+    } else {
+      mostrarLoading(false);
+    }
     try {
       var resp = await fetch(API_BASE + '/portfolio.json?t=' + Date.now(), { cache: 'no-store' });
       if (!resp.ok) throw new Error('HTTP ' + resp.status + ' — portfolio.json nao encontrado');
       dadosPortfolio = await resp.json();
       if (!dadosPortfolio || !dadosPortfolio.coins) throw new Error('Formato invalido');
+      var cambioFalhou = false, usouCache = false;
       try {
         var rBRL = await fetch('https://economia.awesomeapi.com.br/json/last/USD-BRL', { cache: 'no-store' });
         var dBRL = await rBRL.json();
@@ -590,22 +701,36 @@
         if (taxaBRL > 0) localStorage.setItem('taxaBRL', taxaBRL);  // guarda a ultima cotacao boa
       } catch(_) {
         // Câmbio fora do ar: usa a última cotação salva em vez de trocar a métrica.
+        cambioFalhou = true;
         var cached = parseFloat(localStorage.getItem('taxaBRL'));
         taxaBRL = (cached > 0) ? cached : null;
+        usouCache = !!taxaBRL;
       }
-      mostrarLoading(false);
       mostrar('aba-portfolio');
       mostrar('portfolio-content'); esconder('portfolio-nodata');
+      // Banner de aviso quando o cambio falha (4.1).
+      if (cambioFalhou && usouCache) {
+        mostrarBanner('Cotacao USD/BRL indisponivel agora — usando a ultima cotacao salva (R$ ' + taxaBRL.toFixed(2) + ').');
+      } else if (cambioFalhou) {
+        mostrarBanner('Cotacao USD/BRL indisponivel — os valores em reais ficam ocultos ate o cambio voltar.');
+      } else {
+        esconderBanner();
+      }
       renderizarResumoPortfolio();
       await renderizarGraficosPortfolio();
+      renderizarEvolucao();
       renderizarCardsPortfolio();
       atualizarTimestamp(dadosPortfolio.ultima_atualizacao);
       mostrarAlerta('success', 'PORTFOLIO ATUALIZADO');
     } catch(err) {
-      mostrarLoading(false);
-      mostrar('aba-portfolio');
-      esconder('portfolio-content'); mostrar('portfolio-nodata');
-      mostrarAlerta('error', 'ERRO: ' + err.message);
+      // Mantem dados antigos na tela se existirem (4.1).
+      if (dadosPortfolio && dadosPortfolio.coins) {
+        mostrarBanner('Falha ao buscar portfolio novo — exibindo a ultima coleta. ' + err.message);
+      } else {
+        mostrar('aba-portfolio');
+        esconder('portfolio-content'); mostrar('portfolio-nodata');
+        mostrarAlerta('error', 'ERRO: ' + err.message);
+      }
     }
   }
 
@@ -787,10 +912,25 @@
       .filter(function(p){return p[1].valor_atual > 0;})
       .sort(function(a,b){return b[1].valor_atual - a[1].valor_atual;});
 
+    // Total da carteira (moedas + USDT livre) para calcular o peso de cada ativo (2.2).
+    var totalCarteira = coins.reduce(function(s,p){return s + p[1].valor_atual;}, 0)
+                      + (dadosPortfolio.usdt_livre || 0);
+
     coins.forEach(function(pair) {
       var coin = pair[0], d = pair[1];
       var conhecido = d.custo_conhecido !== false;  // default true (compat. json antigo)
       var plPos = d.pl_pct >= 0;
+
+      // Peso na carteira (2.2)
+      var pesoTxt = totalCarteira > 0 ? (d.valor_atual / totalCarteira * 100).toFixed(1) + '%' : '—';
+
+      // Setinha de tendencia: usa a variacao 24h do mercado, se a aba mercado ja carregou (2.4).
+      var mkt = (dadosMercado && dadosMercado.coins) ? dadosMercado.coins[coin] : null;
+      var trendTxt = '';
+      if (mkt && typeof mkt.desvio_percent === 'number') {
+        var up = mkt.desvio_percent >= 0;
+        trendTxt = '<span class="trend ' + (up?'positive':'negative') + '">' + (up?'&#9650;':'&#9660;') + '</span>';
+      }
 
       var plBadge, custoBaseTxt, precoMedioTxt;
       if (conhecido) {
@@ -809,12 +949,13 @@
       card.className = 'p-card ' + (conhecido ? (plPos ? 'pl-positive' : 'pl-negative') : '');
       card.innerHTML =
         '<div class="p-card-header">' +
-          '<span class="p-coin">' + coin + '</span>' +
+          '<span class="p-coin">' + imgLogo(coin, 20) + coin + '</span>' +
           '<span class="p-valor">$' + d.valor_atual.toFixed(2) + '</span>' +
         '</div>' +
         '<div class="p-rows">' +
           '<div class="p-row"><span class="p-key">Quantidade</span><span class="p-val">' + fmtQtd(d.quantidade, d.preco_atual) + '</span></div>' +
-          '<div class="p-row"><span class="p-key">Preco Atual</span><span class="p-val">$' + fmt(d.preco_atual) + '</span></div>' +
+          '<div class="p-row"><span class="p-key">Preco Atual</span><span class="p-val">$' + fmt(d.preco_atual) + trendTxt + '</span></div>' +
+          '<div class="p-row"><span class="p-key">Peso na Carteira</span><span class="p-val" style="color:var(--accent)">' + pesoTxt + '</span></div>' +
           '<div class="p-row"><span class="p-key">Preco Medio</span><span class="p-val" style="color:var(--muted)">' + precoMedioTxt + '</span></div>' +
           '<div class="p-row"><span class="p-key">Custo Base</span><span class="p-val" style="color:var(--muted)">' + custoBaseTxt + '</span></div>' +
           '<div class="p-row"><span class="p-key">P&L</span>' + plBadge + '</div>' +
@@ -823,16 +964,90 @@
     });
   }
 
+  // ── 2.3 Evolucao do patrimonio ao longo do tempo ──
+  // Salva um ponto {t, v} no localStorage a cada coleta e desenha a linha.
+  // Historico e por dispositivo (PC e iPhone tem o seu, pois nao ha backend persistente).
+  function renderizarEvolucao() {
+    var total = (dadosPortfolio && dadosPortfolio.total_valor_usd) || 0;
+    var hist = [];
+    try { hist = JSON.parse(localStorage.getItem('histPatrimonio') || '[]'); } catch(_) { hist = []; }
+    if (!Array.isArray(hist)) hist = [];
+
+    var agora = Date.now();
+    var ultimo = hist[hist.length - 1];
+    // Registra novo ponto se passou >30s desde o ultimo OU o valor mudou (evita duplicar no auto-refresh).
+    if (total > 0 && (!ultimo || (agora - ultimo.t) > 30000 || Math.abs(ultimo.v - total) > 0.005)) {
+      hist.push({ t: agora, v: total });
+      if (hist.length > 1000) hist = hist.slice(hist.length - 1000);
+      try { localStorage.setItem('histPatrimonio', JSON.stringify(hist)); } catch(_) {}
+    }
+
+    var ex = Chart.getChart('chart-evolucao');
+    if (ex) ex.destroy();
+
+    function rotulo(ts) {
+      var d = new Date(ts);
+      return ('0'+d.getDate()).slice(-2) + '/' + ('0'+(d.getMonth()+1)).slice(-2) +
+             ' ' + ('0'+d.getHours()).slice(-2) + ':' + ('0'+d.getMinutes()).slice(-2);
+    }
+    var labels  = hist.map(function(p){ return rotulo(p.t); });
+    var valores = hist.map(function(p){ return p.v; });
+
+    charts['chart-evolucao'] = new Chart(document.getElementById('chart-evolucao'), {
+      type: 'line',
+      data: { labels: labels, datasets: [{ data: valores,
+        borderColor: COR_ACCENT, backgroundColor: COR_ACCENT + '15',
+        borderWidth: 2, fill: true, tension: 0.3,
+        pointRadius: hist.length < 40 ? 2 : 0, pointBackgroundColor: COR_ACCENT }] },
+      options: { responsive:true, maintainAspectRatio:false,
+        plugins: {
+          legend: { display:false },
+          title: { display:true, text:'PATRIMONIO TOTAL (USD) AO LONGO DO TEMPO', color:COR_MUTED, font:{size:10,weight:'700'}, padding:{bottom:8} },
+          tooltip: { callbacks: { label: function(c){ return '$' + c.parsed.y.toFixed(2); } } }
+        },
+        scales: {
+          x: { ticks:{color:COR_TICK,font:{size:9},maxTicksLimit:8,maxRotation:0}, grid:{color:COR_GRID} },
+          y: { grid:{color:COR_GRID}, ticks:{color:COR_TICK,callback:function(v){return '$'+v.toLocaleString('pt-BR');}} }
+        }
+      }
+    });
+
+    var hint = document.getElementById('evolucao-hint');
+    if (hint) {
+      if (hist.length < 2) {
+        hint.textContent = 'O grafico vai se formar conforme voce acompanhar o portfolio (1 ponto por atualizacao). Historico salvo neste dispositivo.';
+      } else {
+        hint.textContent = hist.length + ' pontos neste dispositivo · desde ' + rotulo(hist[0].t);
+      }
+    }
+  }
+
   // ── Helpers ────────────────────────────────────────────────────────
+  var _ultimoTsIso = null;  // guarda a ultima data para recalcular "ha X min"
+
   function atualizarTimestamp(iso) {
+    if (iso) _ultimoTsIso = iso;
+    renderTimestamp();
+  }
+
+  // Mostra a data literal + tempo relativo ("ha X min"). O relativo e recalculado
+  // periodicamente por um setInterval, sem precisar de nova coleta (2.1).
+  function renderTimestamp() {
     var el = document.getElementById('timestamp');
-    if (!iso) return;
-    // Mostra os numeros literais da string ISO, sem reconverter fuso.
-    // Evita o bug do iOS Safari (que somava +3h interpretando como UTC) e
-    // garante que a hora de Brasilia gravada pelo backend apareca igual.
-    var m = iso.match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})/);
-    if (m) el.textContent = m[3] + '/' + m[2] + '/' + m[1] + ' ' + m[4] + ':' + m[5];
-    else   el.textContent = iso;
+    if (!el || !_ultimoTsIso) return;
+    // Numeros literais da ISO, sem reconverter fuso (evita o bug +3h do iOS Safari).
+    var m = _ultimoTsIso.match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})/);
+    var base = m ? (m[3] + '/' + m[2] + '/' + m[1] + ' ' + m[4] + ':' + m[5]) : _ultimoTsIso;
+    var rel = '';
+    var d = new Date(_ultimoTsIso);  // a ISO do backend tem offset -03:00, entao o instante e correto
+    if (!isNaN(d.getTime())) {
+      var seg = Math.max(0, Math.floor((Date.now() - d.getTime()) / 1000));
+      if      (seg < 60)    rel = 'ha ' + seg + 's';
+      else if (seg < 3600)  rel = 'ha ' + Math.floor(seg / 60) + ' min';
+      else if (seg < 86400) rel = 'ha ' + Math.floor(seg / 3600) + 'h';
+      else                  rel = 'ha ' + Math.floor(seg / 86400) + 'd';
+    }
+    el.innerHTML = base + (rel ? ' <span style="color:var(--accent)">&middot; ' + rel + '</span>' : '');
   }
 
   function fmt(n) {
@@ -854,7 +1069,42 @@
     if (tipo==='success') setTimeout(function(){esconder('alert-'+tipo);}, 3000);
   }
 
+  // 4.1 — banner de aviso persistente (some so quando os dados voltam ao normal)
+  function mostrarBanner(msg) {
+    var b = document.getElementById('banner-aviso');
+    var t = document.getElementById('banner-aviso-txt');
+    if (t) t.textContent = msg;
+    if (b) b.style.display = 'flex';
+  }
+  function esconderBanner() {
+    var b = document.getElementById('banner-aviso');
+    if (b) b.style.display = 'none';
+  }
+
+  // 3.3 — URL do logo da moeda (com fallback que esconde a img se nao existir)
+  function logoURL(coin) {
+    return 'https://assets.coincap.io/assets/icons/' + coin.toLowerCase() + '@2x.png';
+  }
+  function imgLogo(coin, size) {
+    size = size || 22;
+    return '<img class="coin-logo" style="width:' + size + 'px;height:' + size + 'px" src="' +
+           logoURL(coin) + '" alt="" onerror="this.style.display=\'none\'">';
+  }
+
+  // 3.2 — gera N cartoes-esqueleto (shimmer) enquanto os dados nao chegam
+  function skelCards(n) {
+    var um = '<div class="skel-card">' +
+               '<div class="skel" style="width:45%;height:18px"></div>' +
+               '<div class="skel" style="width:65%;height:26px;margin-top:16px"></div>' +
+               '<div class="skel" style="width:100%;height:48px;margin-top:16px"></div>' +
+             '</div>';
+    var out = '';
+    for (var i = 0; i < n; i++) out += um;
+    return out;
+  }
+
   setInterval(function(){ if (!document.hidden) atualizar(); }, 60000);
+  setInterval(renderTimestamp, 20000);  // 2.1 — atualiza o "ha X min" sozinho
   window.addEventListener('load', atualizar);
 
   // Heartbeat — informa o servidor que o browser ainda esta aberto.
