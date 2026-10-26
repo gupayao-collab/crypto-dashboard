@@ -395,7 +395,10 @@
       <div class="charts-section" style="margin-bottom:20px">
         <div class="section-title">// Alocacao do Portfolio</div>
         <div class="charts-grid" style="grid-template-columns:1fr 1fr">
-          <div class="pie-wrap"><canvas id="chart-alocacao"></canvas></div>
+          <div class="pie-wrap" style="height:auto;display:flex;flex-direction:column">
+            <div style="height:240px;position:relative"><canvas id="chart-alocacao"></canvas></div>
+            <div id="aloc-grupos" style="border-top:1px dashed var(--border);margin-top:10px;padding-top:10px"></div>
+          </div>
           <div class="pie-wrap" style="display:flex;flex-direction:column">
             <div class="val-toggle">
               <button id="btn-val-7D"  class="val-btn"        onclick="trocarPeriodoVal('7D')">7D</button>
@@ -449,6 +452,15 @@
   var filtroAtual    = 'todos';
   var abaAtual       = 'mercado';
   var charts         = {};
+
+  // Grupos de moedas para o resumo "POR GRUPO" dentro do card de Alocacao.
+  var GRUPOS_ALOC = [
+    { nome: 'BTC',                moedas: ['BTC'],                 cor: '#00d4ff' },
+    { nome: 'ETH + SOL',          moedas: ['ETH', 'SOL'],          cor: '#00ff9d' },
+    { nome: 'XRP + AAVE + ADA',   moedas: ['XRP', 'AAVE', 'ADA'],  cor: '#ffd166' },
+    { nome: 'DOGE + PEPE + LINK', moedas: ['DOGE', 'PEPE', 'LINK'],cor: '#a78bfa' },
+    { nome: 'USDT',               moedas: [],                      cor: '#64748b', usdt: true }
+  ];
 
   // Valorizacao por periodo (grafico de barras do portfolio)
   var PERIODOS_VAL = {
@@ -831,6 +843,9 @@
       }
     });
 
+    // Campo novo: porcentagens agrupadas por grupo de moedas (dentro do card ALOCACAO).
+    renderGruposAlocacao();
+
     // Grafico: valorizacao por periodo (7D / 30D / 6M / 1A) — busca klines da Binance.
     // Guarda a lista de coins e limpa o cache (precos mudaram nesta recoleta).
     _coinsVal = coins.map(function(p){return p[0];});
@@ -839,6 +854,38 @@
     } finally {
       _renderizandoPortfolio = false;
     }
+  }
+
+  // Campo "POR GRUPO": soma o valor de cada grupo de moedas e mostra a % do patrimonio.
+  function renderGruposAlocacao() {
+    var el = document.getElementById('aloc-grupos');
+    if (!el || !dadosPortfolio || !dadosPortfolio.coins) return;
+    var coins = dadosPortfolio.coins;
+    var usdt  = dadosPortfolio.usdt_livre || 0;
+    var total = Object.keys(coins).reduce(function(s,k){ return s + (coins[k].valor_atual || 0); }, 0) + usdt;
+    if (total <= 0) { el.innerHTML = ''; return; }
+
+    var linhas = GRUPOS_ALOC.map(function(g){
+      var soma = g.moedas.reduce(function(s,m){ return s + ((coins[m] && coins[m].valor_atual) || 0); }, 0);
+      if (g.usdt) soma += usdt;
+      return { nome: g.nome, cor: g.cor, pct: soma / total * 100 };
+    });
+    var maxPct = Math.max.apply(null, linhas.map(function(l){ return l.pct; })) || 1;
+
+    el.innerHTML =
+      '<div style="font-size:9px;color:var(--muted);letter-spacing:1.5px;font-weight:700;margin-bottom:8px">POR GRUPO</div>' +
+      linhas.map(function(l){
+        var w    = Math.max(0, l.pct / maxPct * 100);
+        var zero = l.pct < 0.05;
+        var pctTxt = l.pct.toFixed(1).replace('.', ',') + '%';
+        return '<div style="margin-bottom:9px">' +
+          '<div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:3px">' +
+            '<span><span style="display:inline-block;width:9px;height:9px;border-radius:2px;background:' + l.cor + ';margin-right:7px"></span>' + l.nome + '</span>' +
+            '<span style="font-family:\'Courier New\',monospace;font-weight:700;font-variant-numeric:tabular-nums' + (zero ? ';color:var(--muted)' : '') + '">' + pctTxt + '</span>' +
+          '</div>' +
+          '<div style="height:6px;background:var(--bg);border-radius:3px;overflow:hidden"><i style="display:block;height:100%;width:' + w + '%;background:' + l.cor + '"></i></div>' +
+        '</div>';
+      }).join('');
   }
 
   // Troca o periodo do grafico de valorizacao (chamado pelos botoes 7D/30D/6M/1A)
