@@ -331,6 +331,14 @@
       /* iPhone: empilha os dois graficos da alocacao verticalmente */
       #aba-portfolio .charts-grid { grid-template-columns: 1fr !important; }
     }
+
+    /* Tablets (ex.: Redmi Pad 2) e telas de toque largas: empilha os blocos na
+       vertical como no iPhone. Toque (pointer: coarse) pega o tablet ate em paisagem,
+       sem afetar monitores de PC com mouse. */
+    @media (max-width: 1024px), (pointer: coarse) and (max-width: 1366px) {
+      #aba-portfolio .charts-grid,
+      #aba-mercado   .charts-grid { grid-template-columns: 1fr !important; }
+    }
   </style>
 </head>
 <body>
