@@ -3,6 +3,20 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <!-- Sem cache: o navegador sempre busca a versao nova (PC, iPhone e tablet),
+       sem precisar de Ctrl+Shift+R depois de uma atualizacao. -->
+  <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate, max-age=0">
+  <meta http-equiv="Pragma" content="no-cache">
+  <meta http-equiv="Expires" content="0">
+  <!-- App instalavel (PWA): abre em tela cheia pelo icone na tela inicial -->
+  <meta name="theme-color" content="#060d1f">
+  <link rel="manifest" href="manifest.json">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black">
+  <meta name="apple-mobile-web-app-title" content="Cripto">
+  <link rel="apple-touch-icon" href="icon-192.png">
+  <link rel="icon" type="image/png" href="icon-192.png">
   <title>Crypto Dashboard</title>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js"></script>
@@ -18,7 +32,7 @@
       --red:        #ff4d6d;
       --yellow:     #ffd166;
       --text:       #e2e8f0;
-      --muted:      #4a6080;
+      --muted:      #7d93b3;   /* mais claro: contraste legivel no celular */
       --card-glow:  rgba(0,212,255,.12);
     }
 
@@ -182,7 +196,7 @@
     .coin-name { font-size: 18px; font-weight: 800; color: var(--accent); letter-spacing: 1px; text-shadow: 0 0 14px rgba(0,212,255,.35); }
     .card-alert .coin-name { color: var(--red); text-shadow: 0 0 14px rgba(255,77,109,.35); }
 
-    .badge { padding: 3px 9px; border-radius: 4px; font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; }
+    .badge { padding: 3px 9px; border-radius: 4px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; }
     .badge-stable { background: rgba(0,255,157,.1); color: var(--green); border: 1px solid rgba(0,255,157,.25); }
     .badge-alert  { background: rgba(255,77,109,.1); color: var(--red); border: 1px solid rgba(255,77,109,.3); animation: pulse-alert 2s ease-in-out infinite; }
     @keyframes pulse-alert {
@@ -190,12 +204,12 @@
       50%      { box-shadow: 0 0 8px rgba(255,77,109,.3); }
     }
 
-    .price-label { font-size: 9px; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 3px; }
+    .price-label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 3px; }
     .price-value { font-size: 24px; font-weight: 700; color: var(--text); font-family: 'Courier New', monospace; margin-bottom: 14px; }
 
     .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 12px; }
     .stat-box { background: var(--surface2); border: 1px solid var(--border); padding: 9px 11px; border-radius: 7px; }
-    .stat-label { font-size: 9px; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 4px; }
+    .stat-label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 4px; }
     .stat-value { font-size: 13px; font-weight: 700; font-family: 'Courier New', monospace; }
 
     .positive { color: var(--green); text-shadow: 0 0 8px rgba(0,255,157,.25); }
@@ -227,7 +241,7 @@
     .summary-card.green-card  { border-color: rgba(0,255,157,.25); box-shadow: 0 0 20px rgba(0,255,157,.06); }
     .summary-card.red-card    { border-color: rgba(255,77,109,.25); box-shadow: 0 0 20px rgba(255,77,109,.06); }
 
-    .summary-label { font-size: 9px; color: var(--muted); text-transform: uppercase; letter-spacing: 1.5px; margin-bottom: 8px; }
+    .summary-label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 1.5px; margin-bottom: 8px; }
     .summary-value { font-size: 28px; font-weight: 800; font-family: 'Courier New', monospace; }
     .summary-sub   { font-size: 12px; color: var(--muted); margin-top: 4px; }
 
@@ -255,7 +269,7 @@
 
     .p-rows { display: flex; flex-direction: column; gap: 7px; }
     .p-row  { display: flex; justify-content: space-between; align-items: center; }
-    .p-key  { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: .8px; }
+    .p-key  { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .8px; }
     .p-val  { font-size: 12px; font-weight: 700; font-family: 'Courier New', monospace; color: var(--text); }
 
     .pl-badge {
@@ -285,7 +299,7 @@
     .price-value, .stat-value, .p-valor, .p-val, .summary-value, .pl-badge, .mover-chip {
       font-variant-numeric: tabular-nums;
     }
-    .summary-value { line-height: 1.15; }
+    .summary-value { line-height: 1.15; white-space: nowrap; font-size: clamp(20px, 2.2vw, 28px); }
     .summary-card { display: flex; flex-direction: column; justify-content: center; min-height: 104px; }
 
     /* ── 3.3 Logos das moedas ── */
@@ -297,7 +311,7 @@
 
     /* ── 1.2 Destaques do dia (movers) ── */
     .movers-bar { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 16px; align-items: center; }
-    .movers-titulo { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: 1.5px; margin-right: 2px; }
+    .movers-titulo { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 1.5px; margin-right: 2px; }
     .mover-chip { display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; border-radius: 20px; font-size: 12px; font-weight: 700; font-family: 'Courier New', monospace; border: 1px solid; }
     .mover-chip img { width: 16px; height: 16px; border-radius: 50%; }
     .mover-chip.up   { background: rgba(0,255,157,.1);  color: var(--green); border-color: rgba(0,255,157,.3); }
@@ -348,7 +362,7 @@
   <div class="header">
     <div>
       <h1>// Crypto Dashboard</h1>
-      <p>BINANCE API &nbsp;·&nbsp; MONITOR EM TEMPO REAL &nbsp;·&nbsp; AUTO-REFRESH 60s</p>
+      <p>BINANCE &nbsp;·&nbsp; MERCADO ATUALIZA A CADA 60s</p>
     </div>
     <div class="controls">
       <button class="btn-primary" id="btn-atualizar" onclick="atualizar(true)"><span class="ref-ico">&#8635;</span> <span id="btn-atualizar-txt">ATUALIZAR</span></button>
@@ -390,7 +404,6 @@
     <div class="charts-section">
       <div class="section-title">// Analise Comparativa</div>
       <div class="charts-grid">
-        <div class="chart-wrap"><canvas id="chart-precos"></canvas></div>
         <div class="chart-wrap"><canvas id="chart-variacoes"></canvas></div>
       </div>
     </div>
@@ -400,6 +413,8 @@
   <div id="aba-portfolio" style="display:none">
     <div id="portfolio-content" style="display:none">
       <div id="portfolio-summary" class="portfolio-summary"></div>
+      <div class="section-title" id="daytrade-titulo" style="margin-bottom:14px">// Daytrade</div>
+      <div id="portfolio-daytrade" class="portfolio-summary"></div>
       <div class="charts-section" style="margin-bottom:20px">
         <div class="section-title">// Alocacao do Portfolio</div>
         <div class="charts-grid" style="grid-template-columns:1fr 1fr">
@@ -421,10 +436,16 @@
       <div class="charts-section" style="margin-bottom:20px">
         <div class="section-title">// Evolucao do Patrimonio</div>
         <div class="chart-wrap" style="height:260px"><canvas id="chart-evolucao"></canvas></div>
-        <p id="evolucao-hint" style="font-size:10px;color:var(--muted);margin-top:10px;text-align:center;letter-spacing:.5px"></p>
+        <p id="evolucao-hint" style="font-size:11px;color:var(--muted);margin-top:10px;text-align:center;letter-spacing:.5px"></p>
       </div>
       <div class="section-title" style="margin-bottom:14px">// Ativos</div>
       <div id="portfolio-cards" class="portfolio-grid"></div>
+      <div class="charts-section" style="margin-bottom:20px" id="sec-qtd-moedas">
+        <div class="section-title">// Quantidade por Moeda (unidades)</div>
+        <div id="qtd-moedas-toggle" class="val-toggle" style="margin-bottom:12px"></div>
+        <div class="chart-wrap" style="height:260px"><canvas id="chart-quantidade"></canvas></div>
+        <p id="qtd-moedas-hint" style="font-size:11px;color:var(--muted);margin-top:10px;text-align:center;letter-spacing:.5px"></p>
+      </div>
     </div>
     <div id="portfolio-nodata" class="no-data">
       <h3>SEM DADOS DE PORTFOLIO</h3>
@@ -490,9 +511,9 @@
   var COR_GREEN  = '#00ff9d';
   var COR_RED    = '#ff4d6d';
   var COR_YELLOW = '#ffd166';
-  var COR_MUTED  = '#4a6080';
+  var COR_MUTED  = '#7d93b3';
   var COR_GRID   = '#1a2f4a';
-  var COR_TICK   = '#4a6080';
+  var COR_TICK   = '#7d93b3';
 
   // ── Tabs ───────────────────────────────────────────────────────────
   function mudarAba(aba, btn) {
@@ -511,12 +532,16 @@
     var btn = document.getElementById('btn-atualizar');
     var txt = document.getElementById('btn-atualizar-txt');
     if (btn) { btn.classList.add('busy'); btn.disabled = true; }
-    if (txt) txt.textContent = forcarColeta ? 'COLETANDO...' : 'ATUALIZANDO...';
+    if (txt) txt.textContent = (forcarColeta === true) ? 'COLETANDO...' : 'ATUALIZANDO...';
     try {
       // /coletar so existe no servidor local (servidor.py).
       // No iPhone (GitHub Pages -> Fly.io), o backend ja cacheia por 30s e
       // qualquer nova chamada a dados.json/portfolio.json busca da Binance.
-      if (forcarColeta && IS_LOCAL) {
+      // PC: o mercado e leve, entao coleta a cada atualizacao (o "60s" do cabecalho e
+      // verdade). O portfolio e pesado: so coleta quando voce clica em Atualizar.
+      // "=== true" de proposito: o evento 'load' passava um objeto e disparava a coleta.
+      var coletar = IS_LOCAL && (forcarColeta === true || abaAtual === 'mercado');
+      if (coletar) {
         try {
           var tipo = abaAtual === 'mercado' ? 'mercado' : 'portfolio';
           var resp = await fetch('/coletar?tipo=' + tipo, { cache: 'no-store' });
@@ -576,8 +601,8 @@
     var entries = Object.entries(dadosMercado.coins).filter(function(pair) {
       var d = pair[1];
       if (d.preco_atual <= 0 || d.historico_24h.length === 0) return false;
-      if (filtroAtual === 'alertas') return Math.abs(d.desvio_percent) >= 3.0;
-      if (filtroAtual === 'estavel') return Math.abs(d.desvio_percent) < 3.0;
+      if (filtroAtual === 'alertas') return Math.abs(var24(d)) >= 3.0;
+      if (filtroAtual === 'estavel') return Math.abs(var24(d)) < 3.0;
       return true;
     });
 
@@ -588,10 +613,10 @@
 
     entries.forEach(function(pair) {
       var coin = pair[0], d = pair[1];
-      var emAlerta = Math.abs(d.desvio_percent) >= 3.0;
-      var alta = d.desvio_percent > 0;
+      var emAlerta = Math.abs(var24(d)) >= 3.0;
+      var alta = var24(d) > 0;
       var cor = alta ? COR_GREEN : COR_RED;
-      var sinal = alta ? '+' + d.desvio_percent.toFixed(2) + '%' : d.desvio_percent.toFixed(2) + '%';
+      var sinal = alta ? '+' + var24(d).toFixed(2) + '%' : var24(d).toFixed(2) + '%';
 
       var setinha = '<span class="trend ' + (alta?'positive':'negative') + '">' + (alta?'&#9650;':'&#9660;') + '</span>';
 
@@ -605,7 +630,7 @@
         '<div class="price-label">PRECO ATUAL</div>' +
         '<div class="price-value">$' + fmt(d.preco_atual) + setinha + '</div>' +
         '<div class="stats-grid">' +
-          '<div class="stat-box"><div class="stat-label">DESVIO 24H</div>' +
+          '<div class="stat-box"><div class="stat-label">VARIACAO 24H</div>' +
             '<div class="stat-value ' + (alta?'positive':'negative') + '">' + (alta?'&#9650;':'&#9660;') + ' ' + sinal + '</div></div>' +
           '<div class="stat-box"><div class="stat-label">MEDIA 24H</div>' +
             '<div class="stat-value" style="color:var(--muted)">$' + fmt(d.media_24h) + '</div></div>' +
@@ -629,32 +654,22 @@
   }
 
   function renderizarGraficosMercado() {
-    ['chart-precos','chart-variacoes'].forEach(function(id){
+    ['chart-variacoes'].forEach(function(id){
       var existing = Chart.getChart(id);
       if (existing) existing.destroy();
       if (charts[id]) delete charts[id];
     });
     var entries = Object.entries(dadosMercado.coins).filter(function(p){return p[1].preco_atual>0&&p[1].historico_24h.length>0;});
     var labels  = entries.map(function(p){return p[0];});
-    var precos  = entries.map(function(p){return p[1].preco_atual;});
-    var desvios = entries.map(function(p){return p[1].desvio_percent;});
+    var desvios = entries.map(function(p){return var24(p[1]);});
     var coresDev = desvios.map(function(v){return v>=0?COR_GREEN:COR_RED;});
-
-    charts['chart-precos'] = new Chart(document.getElementById('chart-precos'), {
-      type:'bar', data:{ labels:labels, datasets:[{ data:precos, backgroundColor:COR_ACCENT+'bb',
-        borderColor:COR_ACCENT, borderWidth:1, borderRadius:4, borderSkipped:false }] },
-      options:{ responsive:true, maintainAspectRatio:false,
-        plugins:{ legend:{display:false}, title:{display:true,text:'PRECOS (USDT)',color:COR_MUTED,font:{size:10,weight:'700'},padding:{bottom:10}} },
-        scales:{ x:{ticks:{color:COR_TICK,font:{size:10}},grid:{color:COR_GRID}},
-          y:{beginAtZero:true,grid:{color:COR_GRID},ticks:{color:COR_TICK,callback:function(v){return '$'+v.toLocaleString('pt-BR');}}} } }
-    });
 
     charts['chart-variacoes'] = new Chart(document.getElementById('chart-variacoes'), {
       type:'bar', data:{ labels:labels, datasets:[{ data:desvios,
         backgroundColor:coresDev.map(function(c){return c+'bb';}), borderColor:coresDev,
         borderWidth:1, borderRadius:4, borderSkipped:false }] },
       options:{ responsive:true, maintainAspectRatio:false,
-        plugins:{ legend:{display:false}, title:{display:true,text:'DESVIO VS. MEDIA 24H (%)  |  VERDE = ALTA  |  VERMELHO = BAIXA',color:COR_MUTED,font:{size:10,weight:'700'},padding:{bottom:10}} },
+        plugins:{ legend:{display:false}, title:{display:true,text:'VARIACAO 24H (%)  |  VERDE = ALTA  |  VERMELHO = BAIXA',color:COR_MUTED,font:{size:11,weight:'700'},padding:{bottom:10}} },
         scales:{ x:{ticks:{color:COR_TICK,font:{size:10}},grid:{color:COR_GRID}},
           y:{ grid:{color:function(c){return c.tick.value===0?'#334':COR_GRID;},lineWidth:function(c){return c.tick.value===0?2:1;}},
             ticks:{color:COR_TICK,callback:function(v){return v.toFixed(1)+'%';}} } } }
@@ -674,8 +689,8 @@
     if (!bar || !dadosMercado || !dadosMercado.coins) return;
 
     var movers = Object.entries(dadosMercado.coins)
-      .filter(function(p){ return p[1].preco_atual > 0 && Math.abs(p[1].desvio_percent) >= 3.0; })
-      .sort(function(a,b){ return b[1].desvio_percent - a[1].desvio_percent; });  // maiores altas primeiro
+      .filter(function(p){ return p[1].preco_atual > 0 && Math.abs(var24(p[1])) >= 3.0; })
+      .sort(function(a,b){ return var24(b[1]) - var24(a[1]); });  // maiores altas primeiro
 
     bar.style.display = 'flex';
 
@@ -686,7 +701,7 @@
     }
 
     var chips = movers.map(function(p){
-      var coin = p[0], dv = p[1].desvio_percent, up = dv >= 0;
+      var coin = p[0], dv = var24(p[1]), up = dv >= 0;
       var sinal = (up ? '+' : '') + dv.toFixed(2) + '%';
       return '<span class="mover-chip ' + (up?'up':'down') + '">' +
                '<img src="' + logoURL(coin) + '" alt="" onerror="this.style.display=\'none\'">' +
@@ -709,7 +724,18 @@
       mostrarLoading(false);
     }
     try {
-      var resp = await fetch(API_BASE + '/portfolio.json?t=' + Date.now(), { cache: 'no-store' });
+      var resp = await buscarPortfolio();
+      if (resp.status === 503) {
+        // Backend reconstruindo o historico pela 1a vez (apos reinicio): tenta de novo sozinho.
+        mostrarBanner('Preparando seus dados pela primeira vez (pode levar 1-2 min). Tentando de novo sozinho...');
+        clearTimeout(carregarPortfolio._retry);
+        carregarPortfolio._retry = setTimeout(function(){ if (abaAtual === 'portfolio') carregarPortfolio(); }, 15000);
+        return;
+      }
+      if (resp.status === 401) {
+        salvarChave('');
+        throw new Error('Chave de acesso invalida. Recarregue a pagina para digitar de novo.');
+      }
       if (!resp.ok) throw new Error('HTTP ' + resp.status + ' — portfolio.json nao encontrado');
       dadosPortfolio = await resp.json();
       if (!dadosPortfolio || !dadosPortfolio.coins) throw new Error('Formato invalido');
@@ -739,6 +765,7 @@
       renderizarResumoPortfolio();
       await renderizarGraficosPortfolio();
       renderizarEvolucao();
+      renderizarQuantidadeMoedas();
       renderizarCardsPortfolio();
       atualizarTimestamp(dadosPortfolio.ultima_atualizacao);
       mostrarAlerta('success', 'PORTFOLIO ATUALIZADO');
@@ -765,6 +792,7 @@
     var plValorTxt = 'R$ —';
     var plPctTxt   = 'cambio indisponivel';
     var valorEmReaisCard = '';
+    var plDecomp = '';
 
     if (cambioOk) {
       var valorBRL = p.total_valor_usd * taxaBRL;
@@ -772,6 +800,15 @@
       plPos      = plBRL >= 0;
       plValorTxt = (plPos?'+':'-') + 'R$ ' + Math.abs(plBRL).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});
       plPctTxt   = (plPos?'+':'') + (plBRL / depositoBRL * 100).toFixed(2) + '%';
+      // Separa o que veio das criptos do que veio do dolar (e do caixa, taxas, realizado):
+      // o deposito e em R$, a carteira em US$ convertida pelo dolar de HOJE.
+      var efeitoUSD = 0;
+      Object.keys(p.coins).forEach(function(k){
+        var c = p.coins[k];
+        if (c.custo_conhecido !== false && c.custo_base > 0) efeitoUSD += c.valor_atual - c.custo_base;
+      });
+      var efCripto = efeitoUSD * taxaBRL, efOutros = plBRL - efCripto;
+      plDecomp = 'Cripto: ' + brlSinal(efCripto) + ' · Cambio e outros: ' + brlSinal(efOutros);
       valorEmReaisCard =
         '<div class="summary-card" style="border-color:#ffd166">' +
           '<div class="summary-label">VALOR EM REAIS</div>' +
@@ -794,8 +831,60 @@
         '<div class="summary-label">LUCRO / PREJUIZO</div>' +
         '<div class="summary-value ' + (cambioOk ? (plPos?'positive':'negative') : '') + '">' + plValorTxt + '</div>' +
         '<div class="summary-sub ' + (cambioOk ? (plPos?'positive':'negative') : '') + '">' + plPctTxt + '</div>' +
+        (plDecomp ? '<div class="summary-sub" style="font-size:11px" title="Cripto = variacao das moedas sobre o custo medio. Cambio e outros = efeito do dolar, USDT em caixa, taxas e lucros ja realizados.">' + plDecomp + '</div>' : '') +
       '</div>' +
       valorEmReaisCard;
+
+    renderizarDaytrade();
+  }
+
+  // Valor em R$ (ou US$ se o cambio estiver fora) com sinal.
+  function brlSinal(v) {
+    return (v >= 0 ? '+' : '-') + 'R$ ' + Math.abs(v).toLocaleString('pt-BR', {minimumFractionDigits:2, maximumFractionDigits:2});
+  }
+  function moedaSinal(usd, comSinal) {
+    var cambioOk = !!taxaBRL && taxaBRL > 0;
+    var v = cambioOk ? usd * taxaBRL : usd;
+    var txt = (cambioOk ? 'R$ ' : '$') + Math.abs(v).toLocaleString('pt-BR', {minimumFractionDigits:2, maximumFractionDigits:2});
+    return comSinal ? ((v >= 0 ? '+' : '-') + txt) : txt;
+  }
+  function desdeCurto() {
+    var d = dadosPortfolio && dadosPortfolio.daytrade && dadosPortfolio.daytrade.desde;
+    var p = (d || '').split('-');
+    return p.length === 3 ? p[2] + '/' + p[1] : '';
+  }
+
+  // Painel de daytrade: o que voce JA embolsou nas vendas, quanto pagou de taxa e
+  // quantas operacoes fez — desde 01/07 (periodo com historico 100% completo).
+  function renderizarDaytrade() {
+    var el = document.getElementById('portfolio-daytrade');
+    var tit = document.getElementById('daytrade-titulo');
+    var dt = dadosPortfolio && dadosPortfolio.daytrade;
+    if (!el) return;
+    if (!dt) { el.innerHTML = ''; if (tit) tit.style.display = 'none'; return; }
+    if (tit) { tit.style.display = ''; tit.textContent = '// Daytrade desde ' + desdeCurto(); }
+    var real = dt.realizado_periodo_usd || 0, taxas = dt.taxas_periodo_usd || 0;
+    var liq = real - taxas, pos = liq >= 0;
+    var vendidasTxt = Object.keys(dt.vendidas || {}).map(function(m){
+      return m + ' ' + moedaSinal(dt.vendidas[m], true);
+    }).join(' · ');
+    el.innerHTML =
+      '<div class="summary-card ' + (pos ? 'green-card' : 'red-card') + '">' +
+        '<div class="summary-label">LUCRO REALIZADO</div>' +
+        '<div class="summary-value ' + (real >= 0 ? 'positive' : 'negative') + '">' + moedaSinal(real, true) + '</div>' +
+        '<div class="summary-sub">liquido de taxas: <span class="' + (pos ? 'positive' : 'negative') + '">' + moedaSinal(liq, true) + '</span></div>' +
+        (vendidasTxt ? '<div class="summary-sub" style="font-size:11px">inclui ja vendidas: ' + vendidasTxt + '</div>' : '') +
+      '</div>' +
+      '<div class="summary-card">' +
+        '<div class="summary-label">TAXAS PAGAS</div>' +
+        '<div class="summary-value" style="color:var(--yellow)">' + moedaSinal(taxas, false) + '</div>' +
+        '<div class="summary-sub">total desde o inicio: ' + moedaSinal(dt.taxas_usd || 0, false) + '</div>' +
+      '</div>' +
+      '<div class="summary-card">' +
+        '<div class="summary-label">OPERACOES</div>' +
+        '<div class="summary-value" style="color:var(--accent)">' + (dt.operacoes_periodo || 0) + '</div>' +
+        '<div class="summary-sub">' + (dt.operacoes || 0) + ' no total (spot)</div>' +
+      '</div>';
   }
 
   async function renderizarGraficosPortfolio() {
@@ -835,7 +924,7 @@
       options: { responsive:true, maintainAspectRatio:false,
         plugins: {
           legend: { display: false },
-          title:{display:true,text:'ALOCACAO (%)',color:COR_MUTED,font:{size:10,weight:'700'},padding:{bottom:8}},
+          title:{display:true,text:'ALOCACAO (%)',color:COR_MUTED,font:{size:11,weight:'700'},padding:{bottom:8}},
           datalabels: {
             color: '#fff',
             font: { size: 11, weight: 'bold' },
@@ -857,7 +946,6 @@
     // Grafico: valorizacao por periodo (7D / 30D / 6M / 1A) — busca klines da Binance.
     // Guarda a lista de coins e limpa o cache (precos mudaram nesta recoleta).
     _coinsVal = coins.map(function(p){return p[0];});
-    _valCache = {};
     await renderizarValorizacao(_periodoVal);
     } finally {
       _renderizandoPortfolio = false;
@@ -881,7 +969,7 @@
     var maxPct = Math.max.apply(null, linhas.map(function(l){ return l.pct; })) || 1;
 
     el.innerHTML =
-      '<div style="font-size:9px;color:var(--muted);letter-spacing:1.5px;font-weight:700;margin-bottom:8px">POR GRUPO</div>' +
+      '<div style="font-size:11px;color:var(--muted);letter-spacing:1.5px;font-weight:700;margin-bottom:8px">POR GRUPO</div>' +
       linhas.map(function(l){
         var w    = Math.max(0, l.pct / maxPct * 100);
         var zero = l.pct < 0.05;
@@ -914,7 +1002,12 @@
       if (b) b.className = 'val-btn' + (p === periodo ? ' active' : '');
     });
 
-    var valorizacao = _valCache[periodo];
+    // Cache de 1h por periodo (memoria + aparelho): a variacao de 30 dias nao muda a
+    // cada minuto, entao nao precisa rebaixar 9 series da Binance a cada atualizacao.
+    var assinatura = _coinsVal.join(',');
+    var cv = _valCache[periodo];
+    if (!cv) { try { cv = JSON.parse(localStorage.getItem('valcache_' + periodo) || 'null'); } catch(_) { cv = null; } }
+    var valorizacao = (cv && cv.assin === assinatura && (Date.now() - cv.t) < 3600000) ? cv.dados : null;
     if (!valorizacao) {
       valorizacao = [];
       for (var i = 0; i < _coinsVal.length; i++) {
@@ -932,8 +1025,10 @@
         } catch(_) {}
       }
       valorizacao.sort(function(a,b){return b.pct - a.pct;});
-      _valCache[periodo] = valorizacao;
+      cv = { t: Date.now(), assin: assinatura, dados: valorizacao };
+      try { localStorage.setItem('valcache_' + periodo, JSON.stringify(cv)); } catch(_) {}
     }
+    _valCache[periodo] = cv;
 
     var labV = valorizacao.map(function(v){return v.coin;});
     var pctV = valorizacao.map(function(v){return v.pct;});
@@ -950,7 +1045,7 @@
         borderColor: pctV.map(function(v){return v>=0?COR_GREEN:COR_RED;}),
         borderWidth: 1, borderRadius: 4, borderSkipped: false }] },
       options: { responsive:true, maintainAspectRatio:false,
-        plugins:{ legend:{display:false}, title:{display:true,text:'VALORIZACAO ' + cfg.label + ' (%)',color:COR_MUTED,font:{size:10,weight:'700'},padding:{bottom:8}} },
+        plugins:{ legend:{display:false}, title:{display:true,text:'VARIACAO DE PRECO ' + cfg.label + ' (%)',color:COR_MUTED,font:{size:11,weight:'700'},padding:{bottom:8}} },
         scales:{
           x:{ticks:{color:COR_TICK,font:{size:11}},grid:{color:COR_GRID}},
           y:{ grid:{color:function(c){return c.tick.value===0?'#334':COR_GRID;},lineWidth:function(c){return c.tick.value===0?2:1;}},
@@ -967,23 +1062,23 @@
       .filter(function(p){return p[1].valor_atual > 0;})
       .sort(function(a,b){return b[1].valor_atual - a[1].valor_atual;});
 
-    // Total da carteira (moedas + USDT livre) para calcular o peso de cada ativo (2.2).
-    var totalCarteira = coins.reduce(function(s,p){return s + p[1].valor_atual;}, 0)
-                      + (dadosPortfolio.usdt_livre || 0);
 
     coins.forEach(function(pair) {
       var coin = pair[0], d = pair[1];
       var conhecido = d.custo_conhecido !== false;  // default true (compat. json antigo)
       var plPos = d.pl_pct >= 0;
 
-      // Peso na carteira (2.2)
-      var pesoTxt = totalCarteira > 0 ? (d.valor_atual / totalCarteira * 100).toFixed(1) + '%' : '—';
+      // Lucro realizado desta moeda desde 01/07 (vendas ja feitas).
+      var rp = (typeof d.realizado_periodo === 'number') ? d.realizado_periodo : null;
+      var realizadoTxt = (rp === null)
+        ? '<span class="p-val" style="color:var(--muted)">—</span>'
+        : '<span class="p-val ' + (rp >= 0 ? 'positive' : 'negative') + '">' + (rp >= 0 ? '+$' : '-$') + Math.abs(rp).toFixed(2) + '</span>';
 
       // Setinha de tendencia: usa a variacao 24h do mercado, se a aba mercado ja carregou (2.4).
       var mkt = (dadosMercado && dadosMercado.coins) ? dadosMercado.coins[coin] : null;
       var trendTxt = '';
-      if (mkt && typeof mkt.desvio_percent === 'number') {
-        var up = mkt.desvio_percent >= 0;
+      if (mkt && typeof var24(mkt) === 'number') {
+        var up = var24(mkt) >= 0;
         trendTxt = '<span class="trend ' + (up?'positive':'negative') + '">' + (up?'&#9650;':'&#9660;') + '</span>';
       }
 
@@ -1010,7 +1105,7 @@
         '<div class="p-rows">' +
           '<div class="p-row"><span class="p-key">Quantidade</span><span class="p-val">' + fmtQtd(d.quantidade, d.preco_atual) + '</span></div>' +
           '<div class="p-row"><span class="p-key">Preco Atual</span><span class="p-val">$' + fmt(d.preco_atual) + trendTxt + '</span></div>' +
-          '<div class="p-row"><span class="p-key">Peso na Carteira</span><span class="p-val" style="color:var(--accent)">' + pesoTxt + '</span></div>' +
+          '<div class="p-row"><span class="p-key">Realizado desde ' + desdeCurto() + '</span>' + realizadoTxt + '</div>' +
           '<div class="p-row"><span class="p-key">Preco Medio</span><span class="p-val" style="color:var(--muted)">' + precoMedioTxt + '</span></div>' +
           '<div class="p-row"><span class="p-key">Custo Base</span><span class="p-val" style="color:var(--muted)">' + custoBaseTxt + '</span></div>' +
           '<div class="p-row"><span class="p-key">P&L</span>' + plBadge + '</div>' +
@@ -1023,45 +1118,42 @@
   // Salva um ponto {t, v} no localStorage a cada coleta e desenha a linha.
   // Historico e por dispositivo (PC e iPhone tem o seu, pois nao ha backend persistente).
   function renderizarEvolucao() {
-    var total = (dadosPortfolio && dadosPortfolio.total_valor_usd) || 0;
-    var hist = [];
-    try { hist = JSON.parse(localStorage.getItem('histPatrimonio') || '[]'); } catch(_) { hist = []; }
-    if (!Array.isArray(hist)) hist = [];
-
-    var agora = Date.now();
-    var ultimo = hist[hist.length - 1];
-    // Registra novo ponto se passou >30s desde o ultimo OU o valor mudou (evita duplicar no auto-refresh).
-    if (total > 0 && (!ultimo || (agora - ultimo.t) > 30000 || Math.abs(ultimo.v - total) > 0.005)) {
-      hist.push({ t: agora, v: total });
-      if (hist.length > 1000) hist = hist.slice(hist.length - 1000);
-      try { localStorage.setItem('histPatrimonio', JSON.stringify(hist)); } catch(_) {}
-    }
-
     var ex = Chart.getChart('chart-evolucao');
     if (ex) ex.destroy();
-
-    function rotulo(ts) {
-      var d = new Date(ts);
-      return ('0'+d.getDate()).slice(-2) + '/' + ('0'+(d.getMonth()+1)).slice(-2) +
-             ' ' + ('0'+d.getHours()).slice(-2) + ':' + ('0'+d.getMinutes()).slice(-2);
+    try { localStorage.removeItem('histPatrimonio'); } catch(_) {}   // historico antigo, por aparelho
+    var hq = dadosPortfolio && dadosPortfolio.quantidades_historico;
+    if (hq && hq.valor_usd && hq.valor_usd.length > 1) {
+      desenharEvolucaoReconstruida(hq);
+      return;
     }
-    var labels  = hist.map(function(p){ return rotulo(p.t); });
-    var valores = hist.map(function(p){ return p.v; });
+    var hint = document.getElementById('evolucao-hint');
+    if (hint) hint.textContent = 'Historico ainda indisponivel — aparece assim que o backend terminar a reconstrucao.';
+  }
+
+  // Evolucao com escala de tempo REAL: 1 ponto por dia, reconstruido do historico
+  // (quantidade do dia x preco de fechamento do dia), vindo do backend.
+  function desenharEvolucaoReconstruida(hq) {
+    var labels = hq.datas.map(function(iso){
+      var p = iso.split('-');  // AAAA-MM-DD -> DD/MM
+      return p[2] + '/' + p[1];
+    });
 
     charts['chart-evolucao'] = new Chart(document.getElementById('chart-evolucao'), {
       type: 'line',
-      data: { labels: labels, datasets: [{ data: valores,
+      data: { labels: labels, datasets: [{ data: hq.valor_usd,
         borderColor: COR_ACCENT, backgroundColor: COR_ACCENT + '15',
-        borderWidth: 2, fill: true, tension: 0.3,
-        pointRadius: hist.length < 40 ? 2 : 0, pointBackgroundColor: COR_ACCENT }] },
+        borderWidth: 2, fill: true, tension: 0.2, pointRadius: 0 }] },
       options: { responsive:true, maintainAspectRatio:false,
         plugins: {
           legend: { display:false },
-          title: { display:true, text:'PATRIMONIO TOTAL (USD) AO LONGO DO TEMPO', color:COR_MUTED, font:{size:10,weight:'700'}, padding:{bottom:8} },
-          tooltip: { callbacks: { label: function(c){ return '$' + c.parsed.y.toFixed(2); } } }
+          title: { display:true, text:'VALOR DAS CRIPTOS (USD) — 1 PONTO POR DIA', color:COR_MUTED, font:{size:11,weight:'700'}, padding:{bottom:8} },
+          tooltip: { callbacks: {
+            title: function(it){ return hq.datas[it[0].dataIndex].split('-').reverse().join('/'); },
+            label: function(c){ return '$' + c.parsed.y.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2}); }
+          } }
         },
         scales: {
-          x: { ticks:{color:COR_TICK,font:{size:9},maxTicksLimit:8,maxRotation:0}, grid:{color:COR_GRID} },
+          x: { ticks:{color:COR_TICK,font:{size:10},maxTicksLimit:8,maxRotation:0}, grid:{color:COR_GRID} },
           y: { grid:{color:COR_GRID}, ticks:{color:COR_TICK,callback:function(v){return '$'+v.toLocaleString('pt-BR');}} }
         }
       }
@@ -1069,10 +1161,138 @@
 
     var hint = document.getElementById('evolucao-hint');
     if (hint) {
-      if (hist.length < 2) {
-        hint.textContent = 'O grafico vai se formar conforme voce acompanhar o portfolio (1 ponto por atualizacao). Historico salvo neste dispositivo.';
+      var ini = (hq.datas[0] || '').split('-');
+      var desde = ini.length === 3 ? (ini[2] + '/' + ini[1] + '/' + ini[0]) : '';
+      var incompletas = Object.keys(hq.confiavel || {}).filter(function(m){ return hq.confiavel[m] === false; });
+      hint.textContent = 'Desde ' + desde + ' · ' + hq.datas.length + ' dias · valor das criptos (sem o USDT em caixa), ' +
+        'reconstruido do seu historico e ancorado no saldo de hoje' +
+        (incompletas.length ? ' · ' + incompletas.join(', ') + ' tem historico incompleto, ajustado proporcionalmente.' : '.');
+    }
+  }
+
+  // ── Quantidade (unidades) de cada moeda ao longo do tempo ──
+  // Reconstruida no backend a partir do historico de trades + Converter (campo
+  // dadosPortfolio.quantidades_historico). Mostra o saldo no fim de cada dia.
+  var _moedaQtd = null;  // moeda selecionada no grafico de quantidade
+
+  function fmtUnid(v) {
+    if (v === 0) return '0';
+    if (v >= 1000) return v.toLocaleString('pt-BR', { maximumFractionDigits: 0 });
+    return v.toLocaleString('pt-BR', { maximumSignificantDigits: 4 });
+  }
+
+  function renderizarQuantidadeMoedas() {
+    var sec = document.getElementById('sec-qtd-moedas');
+    var h   = dadosPortfolio && dadosPortfolio.quantidades_historico;
+    if (!sec) return;
+    if (!h || !h.series || !Object.keys(h.series).length) {
+      sec.style.display = 'none';
+      return;
+    }
+    sec.style.display = '';
+
+    // Ordena as moedas pela maior posicao atual (as mais relevantes primeiro).
+    var moedas = Object.keys(h.series).sort(function(a, b){
+      var va = (dadosPortfolio.coins[a] && dadosPortfolio.coins[a].valor_atual) || 0;
+      var vb = (dadosPortfolio.coins[b] && dadosPortfolio.coins[b].valor_atual) || 0;
+      return vb - va;
+    });
+    var padrao = moedas[0];    // maior posicao atual (hoje, BTC)
+    moedas.unshift('TOTAL');   // totem agregado, ao lado do BTC
+    if (!_moedaQtd || moedas.indexOf(_moedaQtd) === -1) _moedaQtd = padrao;
+
+    // Botoes de selecao (uma moeda por vez).
+    document.getElementById('qtd-moedas-toggle').innerHTML = moedas.map(function(m){
+      return '<button class="val-btn' + (m === _moedaQtd ? ' active' : '') +
+             '" onclick="trocarMoedaQtd(\'' + m + '\')">' + m + '</button>';
+    }).join('');
+
+    desenharQuantidadeMoeda(_moedaQtd);
+  }
+
+  function trocarMoedaQtd(moeda) {
+    _moedaQtd = moeda;
+    renderizarQuantidadeMoedas();
+  }
+
+  // Media das criptos como INDICE base 100: cada moeda vale 100 no seu primeiro dia
+  // com posicao, e a linha e a media das moedas. Somar unidades de moedas diferentes
+  // nao faria sentido (0,005 BTC + 8 milhoes de PEPE), por isso o indice.
+  function serieTotalIndice(h) {
+    var n = h.datas.length, soma = [], cont = [], i;
+    for (i = 0; i < n; i++) { soma.push(0); cont.push(0); }
+    Object.keys(h.series).forEach(function(m){
+      var s = h.series[m], base = 0, ini = -1, j;
+      for (j = 0; j < n; j++) { if (s[j] > 0) { base = s[j]; ini = j; break; } }
+      if (ini < 0 || base <= 0) return;           // moeda sem posicao no periodo
+      for (j = ini; j < n; j++) { soma[j] += s[j] / base * 100; cont[j] += 1; }
+    });
+    var out = [];
+    for (i = 0; i < n; i++) out.push(cont[i] ? Math.round(soma[i] / cont[i] * 10) / 10 : null);
+    return out;
+  }
+
+  function desenharQuantidadeMoeda(moeda) {
+    var h = dadosPortfolio.quantidades_historico;
+    var ehTotal = (moeda === 'TOTAL');
+    var serie = ehTotal ? serieTotalIndice(h) : h.series[moeda];
+    if (!serie) return;
+
+    var ex = Chart.getChart('chart-quantidade');
+    if (ex) ex.destroy();
+
+    var labels = h.datas.map(function(iso){
+      var p = iso.split('-');  // AAAA-MM-DD -> DD/MM
+      return p[2] + '/' + p[1];
+    });
+
+    var cor = ehTotal ? COR_YELLOW : COR_ACCENT;
+    var dsets = [{ data: serie, borderColor: cor, backgroundColor: cor + '15',
+      borderWidth: 2, fill: true, tension: 0.2, pointRadius: 0 }];
+    if (ehTotal) {
+      // Linha de referencia no 100 = quantidade do inicio do periodo.
+      dsets.push({ data: labels.map(function(){ return 100; }), borderColor: COR_MUTED,
+        borderWidth: 1, borderDash: [4,4], fill: false, pointRadius: 0 });
+    }
+
+    charts['chart-quantidade'] = new Chart(document.getElementById('chart-quantidade'), {
+      type: 'line',
+      data: { labels: labels, datasets: dsets },
+      options: { responsive:true, maintainAspectRatio:false,
+        plugins: {
+          legend: { display:false },
+          title: { display:true, color:COR_MUTED, font:{size:11,weight:'700'}, padding:{bottom:8},
+            text: ehTotal ? 'MEDIA DAS CRIPTOS (indice: 100 = quantidade no inicio)'
+                          : 'QUANTIDADE DE ' + moeda + ' (unidades)' },
+          tooltip: { callbacks: { label: function(c){
+            if (c.datasetIndex === 1) return 'referencia: 100';
+            return ehTotal ? ('indice ' + fmtUnid(c.parsed.y)) : (fmtUnid(c.parsed.y) + ' ' + moeda);
+          } } }
+        },
+        scales: {
+          x: { ticks:{color:COR_TICK,font:{size:10},maxTicksLimit:8,maxRotation:0}, grid:{color:COR_GRID} },
+          y: { grid:{color:COR_GRID}, ticks:{color:COR_TICK,callback:function(v){return fmtUnid(v);}} }
+        }
+      }
+    });
+
+    var hint = document.getElementById('qtd-moedas-hint');
+    if (hint) {
+      var ini = (h.datas[0] || '').split('-');  // AAAA-MM-DD
+      var desde = ini.length === 3 ? (ini[2] + '/' + ini[1] + '/' + ini[0]) : '';
+      if (ehTotal) {
+        var fim = serie[serie.length - 1];
+        var dir = fim >= 100 ? 'acumulou' : 'reduziu';
+        var difTxt = fmtUnid(Math.abs(Math.round((fim - 100) * 10) / 10));
+        hint.textContent = 'Media das ' + Object.keys(h.series).length + ' criptos · 100 = quantidade em ' +
+          desde + ' · hoje ' + fmtUnid(fim) + ' → em media voce ' + dir + ' ' + difTxt + '% em unidades.';
+      } else if (h.confiavel && h.confiavel[moeda] === false) {
+        hint.innerHTML = '<span style="color:var(--yellow)">&#9888; Reconstrucao incompleta para ' + moeda +
+          ': pode faltar trade feito em outro par (cripto/cripto), deposito ou Earn. A forma da curva ainda e indicativa.</span>';
       } else {
-        hint.textContent = hist.length + ' pontos neste dispositivo · desde ' + rotulo(hist[0].t);
+        var atual = (dadosPortfolio.coins[moeda] && dadosPortfolio.coins[moeda].quantidade) || 0;
+        hint.textContent = (desde ? 'Desde ' + desde + ' · ' : '') +
+          'saldo no fim de cada dia · hoje: ' + fmtUnid(atual) + ' ' + moeda;
       }
     }
   }
@@ -1103,6 +1323,34 @@
       else                  rel = 'ha ' + Math.floor(seg / 86400) + 'd';
     }
     el.innerHTML = base + (rel ? ' <span style="color:var(--accent)">&middot; ' + rel + '</span>' : '');
+  }
+
+  // Variacao 24h oficial da Binance; se o dado for antigo, usa o desvio anterior.
+  function var24(d) {
+    if (!d) return 0;
+    return (typeof d.variacao_24h === 'number') ? d.variacao_24h : (d.desvio_percent || 0);
+  }
+
+  // Portfolio: no PC le o arquivo local. No iPhone/tablet o Fly.io exige a chave de
+  // acesso, guardada SO neste aparelho (nunca no codigo, que e publico no GitHub).
+  var _jaPediuChave = false;
+  function lerChave()    { try { return localStorage.getItem('dashToken') || ''; } catch(_) { return ''; } }
+  function salvarChave(v){ try { if (v) localStorage.setItem('dashToken', v); else localStorage.removeItem('dashToken'); } catch(_) {} }
+  async function buscarPortfolio() {
+    var url = API_BASE + '/portfolio.json?t=' + Date.now();
+    if (IS_LOCAL) return fetch(url, { cache: 'no-store' });
+    var chave = lerChave();
+    var resp = await fetch(url, { cache: 'no-store', headers: chave ? { 'X-Dash-Token': chave } : {} });
+    if (resp.status === 401 && !_jaPediuChave) {
+      _jaPediuChave = true;   // pergunta 1x por abertura (o auto-refresh nao fica insistindo)
+      var nova = window.prompt('Digite a chave de acesso do dashboard (fica salva so neste aparelho):', '');
+      if (nova && nova.trim()) {
+        salvarChave(nova.trim());
+        resp = await fetch(API_BASE + '/portfolio.json?t=' + Date.now(),
+                           { cache: 'no-store', headers: { 'X-Dash-Token': nova.trim() } });
+      }
+    }
+    return resp;
   }
 
   function fmt(n) {
@@ -1160,7 +1408,8 @@
 
   setInterval(function(){ if (!document.hidden) atualizar(); }, 60000);
   setInterval(renderTimestamp, 20000);  // 2.1 — atualiza o "ha X min" sozinho
-  window.addEventListener('load', atualizar);
+  // Abrir a pagina so le os dados (nao forca a coleta pesada do portfolio).
+  window.addEventListener('load', function(){ atualizar(false); });
 
   // Heartbeat — informa o servidor que o browser ainda esta aberto.
   // Quando a aba fechar, os pings param e o servidor encerra os coletores.
